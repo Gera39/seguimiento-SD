@@ -1,361 +1,81 @@
 <template>
+  <div>
     <Header :titulo="tituloPagina" />
-    <h1 class="flex items-center gap-3 m-4 text-2xl font-bold text-gray-700">
-       <Notebook :size="28" />
-        Validación Final de Secuencias Didácticas
-    </h1>
 
+    <main class="space-y-6 p-4 md:p-6">
+      <section class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Revision academica</p>
+        <h1 class="mt-3 text-3xl font-semibold text-slate-900">Validacion de secuencias</h1>
+        <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+          Esta vista ya quedo reducida a una maqueta clara de revision. Mantiene prioridades visuales, estados y acciones sugeridas.
+        </p>
+      </section>
 
-    <div class="m-4 flex flex-wrap items-center gap-3">
-        <div class="relative flex-1 min-w-[250px]">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                <Search class="w-5 h-5" />
-            </span>
-            <Input
-                v-model="filtros.search"
-                placeholder="Buscar por docente, materia o estado..."
-                class="pl-11 pr-4 w-full rounded-md border-gray-300"
-            />
-        </div>
-
-        <div class="flex items-center gap-2">
-            <Button
-                class="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-[#0F766E]"
-                @click="aplicarFiltros">
-                <Search :size="18" /> Buscar
-            </Button>
-
-            <Button
-                class="flex items-center gap-2 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
-                @click="limpiarFiltros">
-                Limpiar
-            </Button>
-        </div>
-    </div>
-    <div class="m-4 flex flex-wrap items-end gap-6">
-        <div class="flex flex-col min-w-[200px]">
-            <span class="font-semibold">Docente</span>
-            <Select v-model="filtros.docente">
-                <SelectTrigger class="w-full">
-                    <SelectValue placeholder="Selecciona un docente" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup>
-                        <SelectItem value="Matemáticas">Matemáticas</SelectItem>
-                        <SelectItem value="Historia">Historia</SelectItem>
-                        <SelectItem value="Física">Física</SelectItem>
-                        <SelectItem value="Literatura">Literatura</SelectItem>
-                        <SelectItem value="Química">Química</SelectItem>
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
-        </div>
-
-        <div class="flex flex-col min-w-[200px]">
-            <span class="font-semibold">Estado</span>
-            <Select v-model="filtros.estado">
-                <SelectTrigger class="w-full">
-                    <SelectValue placeholder="Selecciona un estado" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup>
-                        <SelectItem value="Entregado">Entregado</SelectItem>
-                        <SelectItem value="No Entregado">No Entregado</SelectItem>
-                        <SelectItem value="Validado">Validado</SelectItem>
-                        <SelectItem value="No Validado">No Validado</SelectItem>
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
-        </div>
-
-        <div class="flex flex-col min-w-[200px]">
-            <span class="font-semibold">Fecha creación</span>
-            <input
-                type="date"
-                v-model="filtros.fecha"
-                class="w-full rounded-md border px-3 py-2"
-            />
-        </div>
-    </div>
-
-
-    <div class="m-4 bg-white border rounded-md">
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead># Sec.</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Docente</TableHead>
-                    <TableHead>Cuatrimestre</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Estado Docente</TableHead>
-                    <TableHead>Estado Validador</TableHead>
-                    <TableHead>Acciones</TableHead>
-                </TableRow>
-            </TableHeader>
-
-            <TableBody>
-                <TableRow
-                    v-for="sec in resultadosPaginados"
-                    :key="sec.id">
-                    <TableCell>{{ sec.id }}</TableCell>
-                    <TableCell>{{ sec.titulo }}</TableCell>
-                    <TableCell>{{ sec.docente }}</TableCell>
-                    <TableCell>{{ sec.grado }}</TableCell>
-                    <TableCell>{{ sec.fecha }}</TableCell>
-
-                    <TableCell>
-                        <span
-                            class="px-3 py-1 rounded text-xs font-semibold"
-                            :class="estadoDocenteClass(sec.estadoDocente)"
-                        >
-                            {{ sec.estadoDocente }}
-                        </span>
-                    </TableCell>
-
-                    <TableCell>
-                        <span
-                            class="px-3 py-1 rounded text-xs font-semibold"
-                            :class="estadoValidadorClass(sec.estadoValidador)"
-                        >
-                            {{ sec.estadoValidador }}
-                        </span>
-                    </TableCell>
-
-                    <TableCell>
-                        <div class="flex gap-2">
-                            <Button size="sm" variant="outline" @click="verSecuencia()">
-                                <Eye :size="16" />
-                            </Button>
-
-                            <Button size="sm" class="bg-[#0F766E] text-white hover:bg-[#0d5f59]"
-                                @click="confirmarValidacion(sec)">
-                                <Check :size="16" />
-                            </Button>
-
-                            <Button size="sm" class="bg-red-600 text-white hover:bg-red-700"
-                                @click="confirmarRechazo(sec)">
-                                <X :size="16" />
-                            </Button>
-                        </div>
-                    </TableCell>
-                </TableRow>
-            </TableBody>
-        </Table>
-
-        <div class="flex justify-center items-center py-4 gap-4">
-            <Button
-                variant="outline"
-                :disabled="paginaActual === 1"
-                @click="paginaActual--">
-                Anterior
-            </Button>
-
-            <span class="font-semibold">
-                Página {{ paginaActual }} / {{ totalPaginas }}
-            </span>
-
-            <Button
-                variant="outline"
-                :disabled="paginaActual === totalPaginas"
-                @click="paginaActual++">
-                Siguiente
-            </Button>
-        </div>
-    </div>
-
-    <transition name="fade">
-        <div v-if="modal.visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div class="bg-white p-6 rounded-xl shadow-xl w-[350px] animate-pop">
-                <h2 class="text-xl font-bold mb-2 text-center">{{ modal.titulo }}</h2>
-                <p class="text-gray-600 text-center mb-4">{{ modal.mensaje }}</p>
-
-                <div class="flex justify-center gap-3">
-                    <Button class="bg-gray-300 hover:bg-gray-400 text-gray-700"
-                        @click="cerrarModal">
-                        Cancelar
-                    </Button>
-
-                    <Button class="bg-blue-600 hover:bg-blue-700 text-white"
-                        @click="modal.accionConfirmar">
-                        Confirmar
-                    </Button>
-                </div>
+      <section class="grid gap-4 md:grid-cols-3">
+        <div v-for="column in queue" :key="column.title" class="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{{ column.title }}</p>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ column.count }}</span>
+          </div>
+          <div class="mt-4 space-y-3">
+            <div v-for="card in column.items" :key="card.name" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p class="font-semibold text-slate-900">{{ card.name }}</p>
+              <p class="mt-1 text-sm text-slate-500">{{ card.meta }}</p>
             </div>
+          </div>
         </div>
-    </transition>
+      </section>
+
+      <section class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="overflow-hidden rounded-[24px] border border-slate-200">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Secuencia</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Docente</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Entrega</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Estado</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Accion sugerida</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 bg-white">
+              <tr v-for="row in rows" :key="row.sequence">
+                <td class="px-4 py-4 font-medium text-slate-900">{{ row.sequence }}</td>
+                <td class="px-4 py-4 text-sm text-slate-600">{{ row.teacher }}</td>
+                <td class="px-4 py-4 text-sm text-slate-600">{{ row.date }}</td>
+                <td class="px-4 py-4">
+                  <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="row.className">{{ row.status }}</span>
+                </td>
+                <td class="px-4 py-4 text-sm text-slate-600">{{ row.action }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
 </template>
 
 <script setup lang="ts">
-import Header from '@/components/Header.vue'
-import { useRouter } from "vue-router"
-import { Notebook, Search, Eye, Check, X } from 'lucide-vue-next'
-import { Input } from '@/components/ui/input'
-import { ref, computed, watch } from 'vue'
+import AppLayout from "@/Layouts/AppLayout.vue";
+import Header from "@/components/Header.vue";
 
-import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from "@/components/ui/table"
-import { Button } from '@/components/ui/button'
-import {
-    Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select'
-
-const router = useRouter()
-
-function verSecuencia() {
-    router.push(`/validacion-final`)
-}
+defineOptions({ layout: AppLayout });
 
 const tituloPagina = {
-    text: "Validación de Secuencias Didácticas",
-    links: []
-}
+  text: "Validacion de secuencias",
+  links: ["Secuencias", "Revision"],
+};
 
-const secuencias = ref([
-    { id: 'SEC-001', titulo: 'Introducción a las Matemáticas', docente: 'Juan Pérez', grado: '1er Grado', fecha: '2024-01-15', estadoDocente: 'Entregado', estadoValidador: 'Validado' },
-    { id: 'SEC-002', titulo: 'Historia de México', docente: 'María García', grado: '2do Grado', fecha: '2024-02-10', estadoDocente: 'No Entregado', estadoValidador: 'No Validado' },
-    { id: 'SEC-003', titulo: 'Física Cuántica Básica', docente: 'Carlos López', grado: '3er Grado', fecha: '2024-03-05', estadoDocente: 'Entregado', estadoValidador: 'No Validado' },
-    { id: 'SEC-004', titulo: 'Literatura Contemporánea', docente: 'Ana Martínez', grado: '2do Grado', fecha: '2024-03-20', estadoDocente: 'No Entregado', estadoValidador: 'Validado' }
-])
+const queue = [
+  { title: "Pendientes", count: "08", items: [{ name: "Pensamiento critico", meta: "3 archivos por revisar" }, { name: "Algoritmos basicos", meta: "2 observaciones previas" }] },
+  { title: "En analisis", count: "04", items: [{ name: "Diseno de interfaces", meta: "Revision compartida" }, { name: "Estadistica aplicada", meta: "Validacion curricular" }] },
+  { title: "Listas para cierre", count: "03", items: [{ name: "Bases de datos", meta: "Cumple criterios" }, { name: "Innovacion educativa", meta: "Esperando decision final" }] },
+];
 
-const filtros = ref({
-    search: "",
-    docente: "",
-    estado: "",
-    fecha: ""
-})
-
-const resultados = ref([...secuencias.value])
-
-function aplicarFiltros() {
-    let data = [...secuencias.value]
-
-    if (filtros.value.search) {
-        const s = filtros.value.search.toLowerCase()
-        data = data.filter(item =>
-            item.docente.toLowerCase().includes(s) ||
-            item.titulo.toLowerCase().includes(s) ||
-            item.grado.toLowerCase().includes(s)
-        )
-    }
-
-    if (filtros.value.estado) {
-        data = data.filter(item =>
-            item.estadoDocente === filtros.value.estado ||
-            item.estadoValidador === filtros.value.estado
-        )
-    }
-
-    if (filtros.value.fecha) {
-        data = data.filter(item => item.fecha === filtros.value.fecha)
-    }
-
-    if (filtros.value.docente) {
-        data = data.filter(item => item.titulo.includes(filtros.value.docente))
-    }
-
-    resultados.value = data
-}
-
-const limpiarFiltros = () => {
-    filtros.value = { search: "", docente: "", estado: "", fecha: "" }
-    resultados.value = [...secuencias.value]
-    paginaActual.value = 1
-}
-
-const paginaActual = ref(1)
-const tamanoPagina = ref(5)
-
-const totalPaginas = computed(() =>
-    Math.max(1, Math.ceil(resultados.value.length / tamanoPagina.value))
-)
-
-const resultadosPaginados = computed(() => {
-    const i = (paginaActual.value - 1) * tamanoPagina.value
-    return resultados.value.slice(i, i + tamanoPagina.value)
-})
-
-watch(resultados, () => {
-    paginaActual.value = 1
-})
-
-function estadoDocenteClass(estado: string) {
-    if (estado === "Entregado")
-        return "bg-[#DCFCE7] text-[#0F766E]"
-    if (estado === "No Entregado")
-        return "bg-red-100 text-red-700"
-    return "bg-gray-100 text-gray-600"
-}
-
-function estadoValidadorClass(estado: string) {
-    if (estado === "Validado")
-        return "bg-[#DBEAFE] text-blue-700"
-    if (estado === "No Validado")
-        return "bg-gray-200 text-gray-700"
-    return "bg-gray-100 text-gray-600"
-}
-const modal = ref({
-    visible: false,
-    titulo: "",
-    mensaje: "",
-    accionConfirmar: () => {}
-})
-
-function mostrarModal(titulo: string, mensaje: string, accion: Function) {
-    modal.value = {
-        visible: true,
-        titulo,
-        mensaje,
-        accionConfirmar: () => {
-            accion()
-            cerrarModal()
-        }
-    }
-}
-
-function cerrarModal() {
-    modal.value.visible = false
-}
-
-function confirmarValidacion(sec: any) {
-    mostrarModal(
-        "¿Validar secuencia?",
-        `La secuencia "${sec.titulo}" será marcada como VALIDADA.`,
-        () => {
-            sec.estadoValidador = "Validado"
-        }
-    )
-}
-
-function confirmarRechazo(sec: any) {
-    mostrarModal(
-        "¿Rechazar secuencia?",
-        `La secuencia "${sec.titulo}" será marcada como NO VALIDADA.`,
-        () => {
-            sec.estadoValidador = "No Validado"
-        }
-    )
-}
+const rows = [
+  { sequence: "Diseno de interfaces", teacher: "Carlos Soto", date: "2026-03-18", status: "En analisis", className: "bg-sky-100 text-sky-700", action: "Abrir revision visual" },
+  { sequence: "Pensamiento critico", teacher: "Luisa Vega", date: "2026-03-20", status: "Pendiente", className: "bg-amber-100 text-amber-700", action: "Comparar evidencias" },
+  { sequence: "Innovacion educativa", teacher: "Andrea Morales", date: "2026-03-22", status: "Lista para cierre", className: "bg-emerald-100 text-emerald-700", action: "Enviar a validacion final" },
+];
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity .2s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-
-@keyframes pop {
-    0% { transform: scale(0.7); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.animate-pop {
-    animation: pop .2s ease-out;
-}
-</style>

@@ -1,126 +1,65 @@
 <template>
-  <div>
-  <form @submit.prevent="handleLogin" class="space-y-4">
-    <div>
-      <label class="text-sm font-medium">Correo</label>
-      <input
-        v-model="email"
-        type="email"
-        class="w-full border rounded-lg p-2 mt-1"
-        placeholder="correo@demo.com"
-        autocomplete="email"
-        required
-      />
-    </div>
+  <div class="space-y-5">
+    <form class="space-y-4">
+      <div class="space-y-2">
+        <label class="text-sm font-medium text-slate-700">Correo institucional</label>
+        <input
+          v-model="email"
+          type="email"
+          class="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+          placeholder="nombre@uth.edu.mx"
+          autocomplete="email"
+        />
+      </div>
 
-    <div>
-      <label class="text-sm font-medium">Contraseña</label>
-      <input
-        v-model="password"
-        type="password"
-        class="w-full border rounded-lg p-2 mt-1"
-        placeholder="••••••"
-        autocomplete="current-password"
-        required
-      />
-    </div>
+      <div class="space-y-2">
+        <label class="text-sm font-medium text-slate-700">Contrasena</label>
+        <input
+          v-model="password"
+          type="password"
+          class="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+          placeholder="Escribe tu contrasena"
+          autocomplete="current-password"
+        />
+      </div>
 
-    <div
-      v-if="storeError"
-      class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-      role="alert"
-      aria-live="polite"
-    >
-      {{ storeError }}
-    </div>
-    <div
-      v-else-if="storeMessage"
-      :class="['rounded-lg border px-3 py-2 text-sm', feedbackPanelClass]"
-      role="status"
-      aria-live="polite"
-    >
-      {{ storeMessage }}
-    </div>
+      <div class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        Vista demo de acceso. El formulario ya esta limpio y listo para conectarlo despues con Laravel.
+      </div>
 
-    <div class="flex items-center justify-between gap-3 text-sm">
-      <span class="text-slate-500">Si no recuerdas tu acceso, recuperalo aqui.</span>
-      <RouterLink
-        to="/recuperar-contrasena"
-        class="font-semibold text-teal-700 transition hover:text-teal-800 hover:underline"
+      <div class="flex items-center justify-between gap-3 text-sm">
+        <span class="text-slate-500">Si no recuerdas tu acceso, recuperalo aqui.</span>
+        <a
+          href="/recuperar-contrasena"
+          class="font-semibold text-teal-700 transition hover:text-teal-800 hover:underline"
+        >
+          Olvide mi contrasena
+        </a>
+      </div>
+
+      <button
+        type="button"
+        class="h-12 w-full rounded-2xl bg-teal-600 text-sm font-semibold text-white transition hover:bg-teal-700"
       >
-        Olvide mi contrasena
-      </RouterLink>
-    </div>
+        Entrar al sistema
+      </button>
+    </form>
 
-    <button
-      type="submit"
-      class="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed"
-      :disabled="isSubmitting"
-    >
-      {{ isSubmitting ? "Ingresando..." : "Ingresar" }}
-    </button>
-  </form>
-   <ModalVFA
-      v-model:open="showOtpModal"
-      :email="modalEmail"
-      :loading="otpLoading"
-      :error="otpError"
-      :dismissible="true"
-      @submit="handleSubmit"
-    />
+    <div class="grid gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+      <div class="flex items-center justify-between">
+        <span>Estado visual</span>
+        <span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Listo</span>
+      </div>
+      <p>
+        Se eliminaron validaciones, store y modal de autenticacion para dejar solo la interfaz base.
+      </p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { storeToRefs } from "pinia";
-import ModalVFA from "@/components/ModalVFA.vue";
-import { useAuthStore } from "@/stores/auth";
-import { RouterLink } from "vue-router";
-import type { LoginCredentials, VerifyAuth } from "@/types/auth";
+import { ref } from "vue";
 
 const email = ref("");
 const password = ref("");
-
-const auth = useAuthStore();
-const {
-  isLoading,
-  error: storeError,
-  message: storeMessage,
-  success: storeSuccess,
-} = storeToRefs(auth);
-
-const isSubmitting = computed(() => isLoading.value);
-const showOtpModal = ref(false);
-const submittedEmail = ref("");
-const otpLoading = ref(false);
-const otpError = ref<string | null>(null);
-
-const modalEmail = computed(() => submittedEmail.value || email.value);
-const handleSubmit = async  (credentials: VerifyAuth) => {
-  const ok = await auth.verify2Auth(credentials);
-}  
-
-const feedbackPanelClass = computed(() => {
-  if (storeSuccess.value === true) return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (storeSuccess.value === false) return "border-amber-200 bg-amber-50 text-amber-700";
-  return "border-slate-200 bg-slate-50 text-slate-600";
-});
-
-const handleLogin = async () => {
-  showOtpModal.value = false;
-  otpError.value = null;
-
-  const credentials: LoginCredentials = {
-    sitio_web: window.location.origin,
-    correo: email.value,
-    password: password.value,
-  };
-
-  const ok = await auth.login(credentials);
-  if (ok) {
-    submittedEmail.value = email.value;
-    showOtpModal.value = true;
-  }
-};
 </script>

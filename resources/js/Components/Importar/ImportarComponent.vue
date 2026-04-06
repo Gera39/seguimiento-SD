@@ -1,131 +1,55 @@
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+    <section class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">Importacion visual</p>
+      <h3 class="mt-3 text-2xl font-semibold text-slate-900">Zona preparada para carga de archivos</h3>
+      <p class="mt-3 text-sm leading-6 text-slate-500">
+        Este bloque quedo solo como referencia visual. Despues podremos conectar la subida real con validacion y procesamiento en Laravel.
+      </p>
 
-    <!-- Selección de archivo -->
-    <span>Selecciona el archivo de usuarios</span>
-    <input 
-      type="file" 
-      accept=".csv,.xlsx"
-      class="border rounded-lg p-2 w-md"
-      @change="onFileChange"
-    />
-
-    <span class="text-muted-foreground">
-      Formatos aceptados: xlsx, csv
-    </span>
-
-    <button
-      class="w-1/3 px-4 py-2 rounded-lg bg-verde-fuerte text-white hover:brightness-95"
-      :disabled="!archivo"
-      @click="simularImportacion"
-    >
-      Importar Usuarios
-    </button>
-  </div>
-
-  <!-- Plantilla -->
-  <div class="mt-4">
-    ¿No tienes una plantilla?
-    <a href="#" class="text-verde-fuerte flex gap-3">
-      Descárgala aquí
-      <HardDriveDownload />
-    </a>
-  </div>
-
-  <div class="my-6">
-    <hr aria-hidden="true" class="h-px border-2" />
-  </div>
-
-  <!-- Sección de resultados -->
-  <div class="grid gap-6 md:grid-cols-2">
-
-    <!-- Estado -->
-    <div>
-      <h3 class="text-2xl m-4 font-bold">Estado de Importación</h3>
-
-      <div class="border-2 rounded-lg p-4 m-4">
-        <ul>
-          <li class="p-2">Usuarios</li>
-          <li class="p-2">
-            Total en archivo:
-            <span class="text-verde-fuerte">{{ estado.total }}</span>
-          </li>
-
-          <li class="p-2">
-            Agrupados:
-            <span class="text-blue-500">{{ estado.correctos }}</span>
-          </li>
-
-          <li class="p-2">
-            Con Error:
-            <span class="text-red-500">{{ estado.errores }}</span>
-          </li>
-        </ul>
+      <div class="mt-6 rounded-[28px] border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center">
+        <p class="text-lg font-semibold text-emerald-800">Arrastra aqui tu archivo</p>
+        <p class="mt-2 text-sm text-emerald-700">Formatos esperados: CSV, XLSX</p>
+        <button type="button" class="mt-5 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+          Seleccionar archivo
+        </button>
       </div>
-    </div>
 
-    <!-- Errores -->
-    <div>
-      <h3 class="text-2xl m-4 font-bold">Detalles de Errores</h3>
+      <div class="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+        Plantilla sugerida: columnas de nombre, correo, telefono, rol y programa academico.
+      </div>
+    </section>
 
-      <p class="text-muted-foreground m-4">
-        Se encontraron los siguientes errores durante la importación
-      </p>
+    <section class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 class="text-2xl font-semibold text-slate-900">Resumen demo de importacion</h3>
 
-      <Alert variant="destructive" class="p-4" v-for="(err, index) in errores" :key="index">
-        <AlertTitle>Fila {{ err.fila }}:</AlertTitle>
-        <AlertDescription>
-          {{ err.mensaje }}
-          <Button class="bg-red-600 hover:bg-red-700 ml-3">
-            Descargar informe completo de errores
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <div class="mt-6 grid gap-4 sm:grid-cols-3">
+        <div v-for="metric in metrics" :key="metric.label" class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <p class="text-sm text-slate-500">{{ metric.label }}</p>
+          <p class="mt-3 text-3xl font-semibold text-slate-900">{{ metric.value }}</p>
+        </div>
+      </div>
 
-      <p v-if="errores.length === 0" class="m-4 text-muted-foreground">
-        No se encontraron errores.
-      </p>
-    </div>
-
+      <div class="mt-6 space-y-3">
+        <div v-for="item in errors" :key="item.row" class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+          <p class="text-sm font-semibold text-amber-800">Fila {{ item.row }}</p>
+          <p class="mt-1 text-sm text-amber-700">{{ item.message }}</p>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { HardDriveDownload } from "lucide-vue-next";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+const metrics = [
+  { label: "Registros detectados", value: "154" },
+  { label: "Importados correctamente", value: "142" },
+  { label: "Con observaciones", value: "12" },
+];
 
-const archivo = ref<File | null>(null);
-
-const estado = ref({
-  total: 0,
-  correctos: 0,
-  errores: 0,
-});
-
-const errores = ref<{ fila: number; mensaje: string }[]>([]);
-
-function onFileChange(event: Event) {
-  const target = event.target as HTMLInputElement;
-  archivo.value = target.files?.[0] ?? null;
-}
-
-/* Simular importación */
-function simularImportacion() {
-  if (!archivo.value) return;
-
-  // --- Simulación estática ---
-  estado.value = {
-    total: 150,
-    correctos: 120,
-    errores: 30,
-  };
-
-  errores.value = [
-    { fila: 5, mensaje: "Correo inválido." },
-    { fila: 20, mensaje: "Nombre faltante." },
-    { fila: 48, mensaje: "Carrera no válida." },
-  ];
-}
+const errors = [
+  { row: 5, message: "Correo institucional incompleto." },
+  { row: 18, message: "Rol no reconocido en el catalogo." },
+  { row: 27, message: "Programa academico vacio." },
+];
 </script>

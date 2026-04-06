@@ -1,109 +1,81 @@
 <script setup lang="ts">
-import type { SidebarProps } from "@/components/ui/sidebar"
-import {
-  File,
-  Settings2,
-  Users,
-  Home,
-} from "lucide-vue-next"
-import NavMain from "@/components/NavMain.vue"
-import NavUser from "@/components/NavUser.vue"
-
-
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarRail,
-} from "@/components/ui/sidebar"
-
-import { computed } from "vue"
-import { storeToRefs } from "pinia"
-import { useAuthStore } from "@/stores/auth"
-
-const auth = useAuthStore()
-const { user } = storeToRefs(auth)
+import type { SidebarProps } from "@/components/ui/sidebar";
+import { BookOpen, FileBarChart2, Home, Settings2, ShieldCheck, Upload, Users } from "lucide-vue-next";
+import NavMain from "@/components/NavMain.vue";
+import NavUser from "@/components/NavUser.vue";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarRail } from "@/components/ui/sidebar";
 
 const props = withDefaults(defineProps<SidebarProps>(), {
   collapsible: "icon",
-})
+});
 
-
-const menuDirector = [
+const menuItems = [
   {
-    title: "Usuarios",
-    url: "#",
+    title: "General",
+    icon: Home,
+    items: [
+      { title: "Dashboard", url: "/dashboard" },
+      { title: "Vista de prueba", url: "/prueba" },
+    ],
+  },
+  {
+    title: "Secuencias",
+    icon: BookOpen,
+    items: [
+      { title: "Mis secuencias", url: "/mis-secuencias" },
+      { title: "Validaciones", url: "/validaciones" },
+      { title: "Reporte", url: "/reportes" },
+    ],
+  },
+  {
+    title: "Administracion",
     icon: Users,
-    items: [{ title: "Lista de Docentes", url: "/docentes" }],
-  },
-  {
-    title: "Reportes",
-    url: "#",
-    icon: File,
     items: [
-      { title: "Validación", url: "/validaciones" },
-      { title: "Reporte de Secuencias", url: "/reportes" },
-    ],
-  },
-  {
-    title: "Configuración",
-    url: "#",
-    icon: Settings2,
-    items: [
+      { title: "Docentes", url: "/docentes" },
       { title: "Importar datos", url: "/importar-datos" },
-      { title: "Asignar permisos", url: "/asignacion-permisos" },
+      { title: "Permisos", url: "/asignacion-permisos" },
     ],
   },
-]
-
-const menuRevisor = [
-    {
-    title: "Secuencias Didácticas",
-    url: "#",
-    icon: File,
-    items: [{ title: "Mis Secuencias", url: "/mis-secuencias" }],
-  },
   {
-    title: "Reportes",
-    url: "#",
-    icon: File,
-    items: [{ title: "Reporte de Secuencias", url: "/reportes" }],
+    title: "Revision",
+    icon: ShieldCheck,
+    items: [
+      { title: "Revision visual", url: "/visualizacion-validacion" },
+      { title: "Validacion final", url: "/validacion-final" },
+      { title: "Ver secuencia", url: "/visualizacion-secuencia" },
+    ],
   },
-]
-
-const menuDocente = [
-  {
-    title: "Secuencias Didácticas",
-    url: "#",
-    icon: File,
-    items: [{ title: "Mis Secuencias", url: "/mis-secuencias" }],
-  },
-]
-const finalMenu = computed(() => {
-  const role = user.value?.role
-
-  if (role === "director") return menuDirector
-  if (role === "revisor") return menuRevisor
-  if (role === "docente") return menuDocente
-
-  return []
-})
+];
 </script>
 
 <template>
-  <Sidebar v-bind="props">
+  <Sidebar v-bind="props" class="border-r border-slate-200 bg-white">
     <SidebarContent>
-<div class="mb-1 flex justify-center">
-  <router-link
-    to="/dashboard"
-    class="p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center"
-  >
-    <Home class="w-6 h-6" />
-  </router-link>
-</div>
+      <div class="border-b border-slate-200 px-4 py-5">
+        <a href="/dashboard" class="flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-white">
+          <div class="flex size-11 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-200">
+            <FileBarChart2 class="size-5" />
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold">Seguimiento SD</p>
+            <p class="text-xs text-slate-300">Vista visual en preparacion</p>
+          </div>
+        </a>
+      </div>
 
+      <NavMain :items="menuItems" />
 
-      <NavMain :items="finalMenu" />
+      <div class="mt-auto px-4 pb-4">
+        <div class="rounded-3xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <div class="mb-3 flex items-center gap-2 font-semibold">
+            <Upload class="size-4" />
+            Demo limpia
+          </div>
+          <p class="leading-6">
+            El proyecto ya esta preparado para mostrar diseno sin depender de auth, router propio o store heredado.
+          </p>
+        </div>
+      </div>
     </SidebarContent>
 
     <SidebarFooter>
@@ -113,4 +85,3 @@ const finalMenu = computed(() => {
     <SidebarRail />
   </Sidebar>
 </template>
-

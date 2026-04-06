@@ -1,248 +1,79 @@
 <template>
-  <Header :titulo="tituloPagina" />
+  <div>
+    <Header :titulo="tituloPagina" />
 
-  <div class="flex">
-    <main class="flex-1 p-8">
-      <h1 class="text-3xl font-bold mb-6">Visualización de secuencia</h1>
+    <main class="grid gap-6 p-4 md:p-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <section class="space-y-6">
+        <article class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Visualizacion</p>
+          <h1 class="mt-3 text-3xl font-semibold text-slate-900">Detalle de secuencia didactica</h1>
+          <p class="mt-3 text-sm leading-6 text-slate-500">
+            Esta pagina queda como una ficha de consulta elegante, pensada para mostrar informacion sin accion ni estados complejos.
+          </p>
+        </article>
 
-      <div class="grid grid-cols-12 gap-4">
-        <div class="col-span-2 bg-white shadow p-3 rounded h-[750px] overflow-auto">
-          <h3 class="font-semibold mb-3 text-center">Páginas</h3>
-          <div
-            v-for="n in 8"
-            :key="n"
-            class="mb-4 cursor-pointer border rounded overflow-hidden hover:ring-2 hover:ring-teal-600 transition"
-            @click="paginaActual = n"
-          >
-            <div class="h-32 bg-gray-200 flex items-center justify-center text-gray-400 text-sm animate-pulse">
-              Página {{ n }}
+        <article class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-2xl font-semibold text-slate-900">Contenido principal</h2>
+          <div class="mt-6 space-y-4">
+            <div v-for="block in blocks" :key="block.title" class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <p class="text-lg font-semibold text-slate-900">{{ block.title }}</p>
+              <p class="mt-3 text-sm leading-6 text-slate-500">{{ block.description }}</p>
             </div>
           </div>
-        </div>
+        </article>
+      </section>
 
-        <div class="col-span-7 bg-white rounded shadow p-4">
-          <div class="flex items-center gap-3 mb-4">
-            <select
-              class="border rounded px-3 py-2 w-60"
-              v-model="archivoSeleccionado"
-            >
-              <option value="Cuatrho_Semestre_2023.pdf">Cuatrho_Semestre_2023.pdf</option>
-              <option value="Secuencia_2.pdf">Secuencia_2.pdf</option>
-            </select>
-
-            <a
-              :href="rutaPDF"
-              download
-              class="px-3 py-2 bg-teal-700 text-white rounded hover:bg-teal-800"
-            >
-              Descargar PDF
-            </a>
-          </div>
-
-          <div class="flex items-center gap-3 mb-4">
-            <button class="px-2 py-1 border rounded">➖</button>
-            <button class="px-2 py-1 border rounded">100%</button>
-            <button class="px-2 py-1 border rounded">➕</button>
-          </div>
-
-          <div class="border h-[550px] flex items-center justify-center text-gray-400 relative">
-            <div class="absolute top-3 left-3 font-bold">
-              Página {{ paginaActual }}
-            </div>
-            <svg class="w-full h-full absolute top-0 left-0 opacity-40">
-              <line x1="0" y1="0" x2="100%" y2="100%" stroke="gray" stroke-width="2" />
-              <line x1="100%" y1="0" x2="0" y2="100%" stroke="gray" stroke-width="2" />
-            </svg>
-            <span>Vista previa del PDF</span>
-          </div>
-        </div>
-
-        <div class="col-span-3 bg-white rounded shadow p-4">
-          <h2 class="font-bold text-lg mb-3">Detalles de la Secuencia</h2>
-
-          <div class="mb-3">
-            <p class="font-semibold">Título:</p>
-            <p>Introducción a la Física Cuántica para Bachillerato</p>
-          </div>
-
-          <div class="mb-3">
-            <p class="font-semibold">Autor:</p>
-            <p>Mtro. Juan Pérez</p>
-          </div>
-
-          <div class="mb-3">
-            <p class="font-semibold">Fecha:</p>
-            <p>12/08/2025</p>
-          </div>
-
-          <div class="mb-3">
-            <span class="px-3 py-1 text-sm rounded bg-yellow-400 text-black font-semibold">
-              En Revisión
-            </span>
-          </div>
-
-          <h3 class="font-semibold mt-4 mb-2">Comentario:</h3>
-          <textarea
-            v-model="comentario"
-            class="w-full border rounded p-2 h-24"
-            placeholder="Escribe tu comentario…"
-          ></textarea>
-
-          <button
-            @click="agregarComentario"
-            class="bg-teal-700 text-white px-4 py-2 rounded mt-2 hover:bg-teal-800 w-full"
-          >
-            Agregar Comentario
-          </button>
-
-          <h3 class="font-semibold mt-4 mb-2">Historial de Comentarios</h3>
-          <div class="border rounded p-2 h-40 overflow-auto text-sm">
-            <div v-for="(c, i) in historial" :key="i" class="mb-3 border-b pb-2">
-              <div class="font-semibold">{{ c.fecha }}</div>
-              <p>{{ c.texto }}</p>
+      <aside class="space-y-6">
+        <article class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-2xl font-semibold text-slate-900">Ficha rapida</h2>
+          <div class="mt-5 grid gap-3">
+            <div v-for="item in details" :key="item.label" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ item.label }}</p>
+              <p class="mt-2 text-sm font-medium text-slate-800">{{ item.value }}</p>
             </div>
           </div>
+        </article>
 
-          <div class="flex flex-col gap-3 mt-6">
-            <button
-              @click="cancelarYRegresar"
-              class="w-full px-5 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg shadow"
-            >
-              Cancelar
-            </button>
-
-            <button
-              @click="abrirModalSubir = true"
-              class="w-full px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow"
-            >
-              Actualizar Secuencia
-            </button>
-
-            <button
-              @click="abrirModal = true"
-              class="w-full px-5 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow"
-            >
-              Enviar para Aprobación
-            </button>
+        <article class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-2xl font-semibold text-slate-900">Recursos relacionados</h2>
+          <div class="mt-5 space-y-3">
+            <div v-for="resource in resources" :key="resource" class="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              {{ resource }}
+            </div>
           </div>
-        </div>
-      </div>
+        </article>
+      </aside>
     </main>
   </div>
-
-  <!-- Modal Enviar para aprobación -->
-  <div
-    v-if="abrirModal"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-  >
-    <div class="bg-white p-6 rounded shadow-lg w-96 animate-pop">
-      <h2 class="text-lg font-bold mb-4">Confirmación</h2>
-      <p class="mb-6">¿Seguro que deseas enviar esta secuencia para aprobación?</p>
-      <div class="flex justify-end gap-3">
-        <button @click="cancelarYRegresar" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition">Cancelar</button>
-        <button @click="confirmarEnvio" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">Enviar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Subir Word -->
-  <div
-    v-if="abrirModalSubir"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-  >
-    <div class="bg-white p-6 rounded shadow-lg w-96 animate-pop">
-      <h2 class="text-lg font-bold mb-4">Actualizar Secuencia</h2>
-      <p class="mb-4">Selecciona un archivo Word para subir:</p>
-      <input type="file" accept=".doc,.docx" @change="archivo = $event.target.files[0]" class="mb-4 w-full border rounded px-3 py-2" />
-      <div class="flex justify-end gap-3">
-        <button @click="cancelarYRegresar" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition">Cancelar</button>
-        <button @click="confirmarSubida" :disabled="!archivo" class="px-4 py-2 bg-teal-700 text-white rounded hover:bg-teal-800 transition">Subir</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mensaje de confirmación -->
-  <transition name="fade">
-    <div
-      v-if="mostrarMensaje"
-      class="fixed bottom-6 right-6 p-4 rounded shadow-lg text-center animate-pop bg-green-100 text-green-700 border border-green-300"
-    >
-      ✔ {{ mensajeConfirmacion }}
-    </div>
-  </transition>
 </template>
 
-<script setup>
-import Header from "@/components/Header.vue"
-import { ref, computed } from "vue"
-import { useRouter } from "vue-router"
+<script setup lang="ts">
+import AppLayout from "@/Layouts/AppLayout.vue";
+import Header from "@/components/Header.vue";
 
-const router = useRouter()
-const tituloPagina = { text: "Visualizacion de secuencia", links: [] }
+defineOptions({ layout: AppLayout });
 
-const comentario = ref("")
-const paginaActual = ref(1)
-const abrirModal = ref(false)
-const abrirModalSubir = ref(false)
-const archivo = ref(null)
-const mostrarMensaje = ref(false)
-const mensajeConfirmacion = ref("")
+const tituloPagina = {
+  text: "Visualizacion de secuencia",
+  links: ["Secuencias", "Detalle"],
+};
 
-const historial = ref([
-  { fecha: "24/11/2025", texto: "Revisar objetivos de aprendizaje." },
-  { fecha: "24/11/2025", texto: "Corregir formato APA." }
-])
+const blocks = [
+  { title: "Contexto y proposito", description: "Describe el escenario academico, la intencion formativa y el enfoque general de la secuencia." },
+  { title: "Actividades por etapa", description: "Presenta el recorrido de apertura, desarrollo y cierre con claridad visual." },
+  { title: "Evaluacion y evidencias", description: "Resume entregables, instrumentos y criterios para interpretar el avance." },
+];
 
-const archivoSeleccionado = ref("Cuatrho_Semestre_2023.pdf")
-const rutaPDF = computed(() => `/pdfs/${archivoSeleccionado.value}`)
+const details = [
+  { label: "Clave", value: "SD-028" },
+  { label: "Docente", value: "Luisa Vega" },
+  { label: "Materia", value: "Metodologia" },
+  { label: "Periodo", value: "2026-1" },
+];
 
-function agregarComentario() {
-  if (!comentario.value.trim()) return
-  historial.value.unshift({ fecha: new Date().toLocaleDateString(), texto: comentario.value })
-  comentario.value = ""
-}
-
-function cancelarYRegresar() {
-  abrirModal.value = false
-  abrirModalSubir.value = false
-  router.push("/mis-secuencias")
-}
-
-function confirmarSubida() {
-  abrirModalSubir.value = false
-  mensajeConfirmacion.value = `Archivo "${archivo.value.name}" subido correctamente`
-  mostrarMensaje.value = true
-  setTimeout(() => {
-    mostrarMensaje.value = false
-    
-  }, 1500)
-  archivo.value = null
-}
-
-function confirmarEnvio() {
-  abrirModal.value = false
-  mensajeConfirmacion.value = "Secuencia enviada para aprobación correctamente"
-  mostrarMensaje.value = true
-  setTimeout(() => {
-    mostrarMensaje.value = false
-    router.push("/mis-secuencias")
-  }, 1500)
-}
+const resources = [
+  "Planeacion semanal en PDF",
+  "Rubrica de evaluacion editable",
+  "Material de apoyo para estudiantes",
+];
 </script>
-
-<style scoped>
-@keyframes pop {
-  0% { transform: scale(0.7); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-.animate-pop { animation: pop 0.2s ease-out; }
-
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-
-.animate-pulse { animation: pulse 1.5s infinite; }
-@keyframes pulse {
-  0%,100% { opacity:1; }
-  50% { opacity:0.4; }
-}
-</style>

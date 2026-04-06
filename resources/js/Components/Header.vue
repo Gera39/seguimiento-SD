@@ -1,50 +1,49 @@
 <template>
-    <header
-        class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-        <div class="flex items-center gap-2 px-4">
-            <SidebarTrigger class="-ml-1" />
-            <Separator orientation="vertical" class="mr-2 h-4" />
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem class="hidden md:block">
-                        <BreadcrumbLink href="#">
-                            {{ titulo.text }}
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator class="hidden md:block" />
+  <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur">
+    <div class="flex min-h-16 items-center justify-between gap-4 px-4">
+      <div class="flex min-w-0 items-center gap-3">
+        <SidebarTrigger class="-ml-1" />
+        <Separator orientation="vertical" class="h-5" />
 
-                    <li v-for="(c, i) in titulo.links" :key="c ?? i" class="flex items-center">
-                        <BreadcrumbItem>
-                            <BreadcrumbPage>
-                                <router-link v-if="c" :to="c">{{ c }}</router-link>
-                                <span v-else>{{ c }}</span>
-                            </BreadcrumbPage>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator class="hidden md:block" />
-                    </li>
-                </BreadcrumbList>
-            </Breadcrumb>
+        <div class="min-w-0">
+          <p class="truncate text-base font-semibold text-slate-900">{{ titulo.text }}</p>
+
+          <div v-if="normalizedLinks.length" class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <template v-for="(link, index) in normalizedLinks" :key="`${link.label}-${index}`">
+              <span v-if="index > 0">/</span>
+              <a v-if="link.href" :href="link.href" class="hover:text-slate-900">
+                {{ link.label }}
+              </a>
+              <span v-else>{{ link.label }}</span>
+            </template>
+          </div>
         </div>
-    </header>
-  
+      </div>
+
+      <div class="hidden items-center gap-2 md:flex">
+        <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+          Solo diseno
+        </span>
+      </div>
+    </div>
+  </header>
 </template>
 
 <script setup lang="ts">
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { computed } from "vue";
 import { Separator } from "@/components/ui/separator";
 import SidebarTrigger from "@/components/ui/sidebar/SidebarTrigger.vue";
 
-defineProps<{
-    titulo: {
-        text: string,
-        links?: string[]
-    },
+const props = defineProps<{
+  titulo: {
+    text: string;
+    links?: Array<string | { label: string; href?: string }>;
+  };
 }>();
+
+const normalizedLinks = computed(() =>
+  (props.titulo.links ?? []).map((link) =>
+    typeof link === "string" ? { label: link } : link,
+  ),
+);
 </script>

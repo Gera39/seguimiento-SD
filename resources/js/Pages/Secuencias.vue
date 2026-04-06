@@ -1,209 +1,71 @@
 <template>
-  <Header :titulo="tituloPagina" />
+  <div>
+    <Header :titulo="tituloPagina" />
 
-  <main class="w-full p-10">
-
-
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold">Mis Secuencias Didácticas</h1>
-
-      <div class="flex items-center gap-3">
-
-        <span class="text-sm text-gray-700 font-medium">Ordenar por:</span>
-
-        <select
-          v-model="orden"
-          class="border rounded-lg px-3 py-2 text-sm focus:ring-teal-600 focus:border-teal-600 bg-white"
-        >
-          <option value="modificacion">Última Modificación</option>
-          <option value="nombre">Nombre</option>
-          <option value="estado">Estado</option>
-        </select>
-
-        
-
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-
-      <div
-        v-for="s in secuenciasOrdenadas"
-        :key="s.id"
-        class="border rounded-xl bg-white p-5 shadow-sm hover:shadow-md transition relative min-h-[250px]"
-      >
-
-        <span
-          class="absolute top-4 right-4 px-2 py-1 text-xs font-semibold rounded"
-          :class="badgeColor(s.estado)"
-        >
-          {{ s.estado }}
-        </span>
-
-
-        <h2 class="font-semibold text-lg leading-tight mb-4 pr-20 pt-2">
-          {{ s.nombre }}
-        </h2>
-
-
-        <div class="text-sm text-gray-700 space-y-2">
-
-          <p class="flex items-center gap-2">
-            <Book class="w-4 h-4 text-gray-600" />
-            <span><strong>Materia:</strong> {{ s.materia }}</span>
-          </p>
-
-          <p class="flex items-center gap-2">
-            <Users class="w-4 h-4 text-gray-600" />
-            <span>{{ s.grupo }}</span>
-          </p>
-
-          <p class="flex items-center gap-2">
-            <Calendar class="w-4 h-4 text-gray-600" />
-            <span>Última Modificación: {{ s.modificacion }}</span>
-          </p>
-
+    <main class="space-y-6 p-4 md:p-6">
+      <section class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-teal-700">Biblioteca personal</p>
+            <h1 class="mt-3 text-3xl font-semibold text-slate-900">Mis secuencias didacticas</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+              La vista ya no ordena, filtra ni navega por codigo. Quedo como escaparate visual para las tarjetas de secuencias.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            Orden sugerido: ultima actualizacion
+          </div>
         </div>
+      </section>
 
-        <p class="text-xs text-gray-500 mt-3 leading-snug">
-          {{ s.descripcion }}
-        </p>
+      <section class="grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
+        <article v-for="item in items" :key="item.title" class="relative rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+          <span class="absolute right-5 top-5 rounded-full px-3 py-1 text-xs font-semibold" :class="item.className">
+            {{ item.status }}
+          </span>
 
-        <div class="flex justify-between items-center mt-5">
-          <button
-            class="px-4 py-1 text-sm border rounded-lg bg-gray-50 hover:bg-gray-100"
-            @click="verDetalles(s.id)"
-          >
-            Ver Detalles
-          </button>
+          <div class="pr-20">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ item.code }}</p>
+            <h2 class="mt-3 text-xl font-semibold text-slate-900">{{ item.title }}</h2>
+          </div>
 
-          <button class="p-1 hover:bg-gray-200 rounded">
-            <MoreVertical class="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
+          <div class="mt-5 space-y-2 text-sm text-slate-600">
+            <p>Materia: {{ item.subject }}</p>
+            <p>Grupo: {{ item.group }}</p>
+            <p>Actualizada: {{ item.updatedAt }}</p>
+          </div>
 
-      </div>
+          <p class="mt-4 text-sm leading-6 text-slate-500">{{ item.description }}</p>
 
-    </div>
-
-    <div class="flex justify-between items-center mt-10">
-
-      <button class="border px-3 py-1 rounded text-sm hover:bg-gray-100">
-        Anterior
-      </button>
-
-      <div class="flex gap-2">
-        <button class="border px-3 py-1 rounded bg-teal-700 text-white text-sm">1</button>
-        <button class="border px-3 py-1 rounded text-sm">2</button>
-        <button class="border px-3 py-1 rounded text-sm">3</button>
-        <button class="border px-3 py-1 rounded text-sm">…</button>
-        <button class="border px-3 py-1 rounded text-sm">10</button>
-      </div>
-
-      <button class="border px-3 py-1 rounded text-sm hover:bg-gray-100">
-        Siguiente
-      </button>
-    </div>
-
-
-    <div class="flex justify-end mt-6">
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-700">Mostrar</span>
-
-        <select class="border rounded-lg px-3 py-1 text-sm">
-          <option>10 por página</option>
-          <option>20 por página</option>
-          <option>50 por página</option>
-        </select>
-      </div>
-    </div>
-
-  </main>
+          <div class="mt-6 flex items-center justify-between">
+            <a :href="item.href" class="text-sm font-semibold text-teal-700 hover:text-teal-800">
+              Ver detalle
+            </a>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+              Demo
+            </span>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
 </template>
 
-<script setup>
-import Header from "@/components/Header.vue"
-import { ref, computed } from "vue"
-import { useRouter } from "vue-router"
+<script setup lang="ts">
+import AppLayout from "@/Layouts/AppLayout.vue";
+import Header from "@/components/Header.vue";
 
-import {
-  Book,
-  Users,
-  Calendar,
-  User,
-  MoreVertical,
-  LayoutGrid,
-  List
-} from "lucide-vue-next"
-
-const router = useRouter()
+defineOptions({ layout: AppLayout });
 
 const tituloPagina = {
-  text: "Mis Secuencias Didácticas",
-  links: []
-}
+  text: "Mis secuencias",
+  links: ["Secuencias", "Listado personal"],
+};
 
-const orden = ref("modificacion")
-
-const secuencias = ref([
-  {
-    id: 1,
-    nombre: "Desarrollo Web con React y Node.js",
-    materia: "Desarrollo de Aplicaciones Web",
-    grupo: "3A",
-    modificacion: "20/03/2025",
-    estado: "Aprobada",
-    descripcion: "Descripción breve..."
-  },
-  {
-    id: 2,
-    nombre: "Introducción a la Inteligencia Artificial",
-    materia: "Sistemas Inteligentes",
-    grupo: "7D",
-    modificacion: "18/03/2025",
-    estado: "Pendiente",
-    descripcion: "Actividad práctica..."
-  },
-  {
-    id: 3,
-    nombre: "Seguridad en Redes y Criptografía",
-    materia: "Redes y Seguridad",
-    grupo: "10A",
-    modificacion: "10/02/2025",
-    estado: "En Revisión",
-    descripcion: "Descripción breve..."
-  },
-  {
-    id: 4,
-    nombre: "Bases de Datos NoSQL",
-    materia: "Bases de Datos",
-    grupo: "4C",
-    modificacion: "22/03/2025",
-    estado: "Rechazada",
-    descripcion: "Descripción breve..."
-  }
-])
-
-const secuenciasOrdenadas = computed(() => {
-  if (orden.value === "nombre") {
-    return [...secuencias.value].sort((a, b) => a.nombre.localeCompare(b.nombre))
-  }
-  if (orden.value === "estado") {
-    return [...secuencias.value].sort((a, b) => a.estado.localeCompare(b.estado))
-  }
-  return secuencias.value
-})
-
-function badgeColor(estado) {
-  return {
-    "Aprobada": "bg-green-100 text-green-800 border border-green-300",
-    "Pendiente": "bg-yellow-100 text-yellow-800 border border-yellow-300",
-    "En Revisión": "bg-blue-100 text-blue-800 border border-blue-300",
-    "Rechazada": "bg-red-100 text-red-800 border border-red-300"
-  }[estado]
-}
-
-function verDetalles() {
-  router.push(`/visualizacion-secuencia`)
-}
+const items = [
+  { code: "SD-014", title: "Desarrollo web con componentes", subject: "Aplicaciones web", group: "3A", updatedAt: "20 Mar 2026", status: "Aprobada", className: "bg-emerald-100 text-emerald-700", description: "Tarjeta limpia para mostrar una secuencia consolidada y lista para consulta.", href: "/visualizacion-secuencia" },
+  { code: "SD-028", title: "Taller de innovacion educativa", subject: "Metodologia", group: "5B", updatedAt: "18 Mar 2026", status: "En revision", className: "bg-amber-100 text-amber-700", description: "Vista preparada para resaltar secuencias con comentarios pendientes.", href: "/visualizacion-secuencia" },
+  { code: "SD-037", title: "Planeacion de evaluaciones", subject: "Gestion academica", group: "4C", updatedAt: "12 Mar 2026", status: "Pendiente", className: "bg-sky-100 text-sky-700", description: "Bloque base listo para conectar acciones futuras desde Laravel.", href: "/visualizacion-secuencia" },
+  { code: "SD-041", title: "Estrategias de presentacion oral", subject: "Comunicacion", group: "2D", updatedAt: "05 Mar 2026", status: "Rechazada", className: "bg-rose-100 text-rose-700", description: "Ejemplo visual de una secuencia con observaciones o retroalimentacion.", href: "/visualizacion-secuencia" },
+];
 </script>
