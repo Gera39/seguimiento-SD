@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": false,
+    "jsx": "preserve",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["resources/js/*"],
+      "@/components/*": ["resources/js/Components/*"],
+      "vue-router": ["resources/js/shims/vue-router.ts"],
+      "pinia": ["resources/js/shims/pinia.ts"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": [
+    "resources/js/**/*.ts",
+    "resources/js/**/*.d.ts",
+    "resources/js/**/*.vue",
+    "vite.config.js"
+  ]
+}
