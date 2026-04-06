@@ -76,6 +76,7 @@ import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import ModalVFA from "@/components/ModalVFA.vue";
 import { useAuthStore } from "@/stores/auth";
+import { RouterLink } from "vue-router";
 import type { LoginCredentials, VerifyAuth } from "@/types/auth";
 
 const email = ref("");

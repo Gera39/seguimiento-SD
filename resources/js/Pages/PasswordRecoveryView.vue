@@ -231,6 +231,7 @@ import {
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RouterLink } from "vue-router";
 
 type FeedbackState = {
   type: "success" | "error";
