@@ -9,6 +9,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -80,9 +81,30 @@ class User extends Authenticatable
         return $this->hasMany(UserMfaMethod::class);
     }
 
+    public function activeMfaMethods(): HasMany
+    {
+        return $this->mfaMethods()->where('is_active', true);
+    }
+
+    public function primaryMfaMethod(): HasOne
+    {
+        return $this->hasOne(UserMfaMethod::class)
+            ->where('is_active', true)
+            ->whereNotNull('confirmed_at')
+            ->where('is_primary', true)
+            ->latestOfMany();
+    }
+
     public function teachingAssignments(): HasMany
     {
         return $this->hasMany(TeacherSubjectAssignment::class, 'teacher_user_id');
+    }
+
+    public function hasConfirmedMfaMethod(): bool
+    {
+        return $this->activeMfaMethods()
+            ->whereNotNull('confirmed_at')
+            ->exists();
     }
 
     public function hasRole(RoleCode|string $role): bool

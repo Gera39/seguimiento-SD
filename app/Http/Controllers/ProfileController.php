@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Security\Mfa\UserMfaManager;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -13,6 +14,11 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        protected UserMfaManager $mfaManager,
+    ) {
+    }
+
     /**
      * Display the user's profile form.
      */
@@ -21,6 +27,8 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'mfa' => $this->mfaManager->setupPayload($request->user()),
+            'mfaRecoveryCodes' => session('mfa_recovery_codes', []),
         ]);
     }
 

@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Domain\Security\Enums\RoleCode;
+use App\Domain\Security\Authentication\AuthLoginAuditService;
+use App\Domain\Security\Authentication\PostLoginRedirector;
+use App\Domain\Security\Mfa\MfaSessionService;
+use App\Domain\Security\Mfa\UserMfaManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +17,14 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
+    public function __construct(
+        protected PostLoginRedirector $redirector,
+        protected UserMfaManager $mfaManager,
+        protected MfaSessionService $mfaSessionService,
+        protected AuthLoginAuditService $auditService,
+    ) {
+    }
+
     /**
      * Display the login view.
      */
@@ -34,11 +45,25 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $request->user()?->forceFill([
-            'last_login_at' => now(),
-        ])->save();
+        $user = $request->user();
+        $fallbackUrl = $this->redirectPathFor($request);
 
-        return redirect()->intended($this->redirectPathFor($request));
+        if ($user !== null) {
+            $this->auditService->record($request, 'PASSWORD_LOGIN', true, $user);
+
+            $mfaMethod = $this->mfaManager->primaryMethodFor($user);
+
+            if ($mfaMethod !== null) {
+                $this->mfaSessionService->beginChallenge($request, $mfaMethod, $fallbackUrl);
+                $this->auditService->record($request, 'MFA_REQUIRED', true, $user, null, $mfaMethod);
+
+                return redirect()->route('mfa.challenge.show');
+            }
+
+            $this->mfaSessionService->markVerified($request, $user);
+        }
+
+        return redirect()->intended($fallbackUrl);
     }
 
     /**
@@ -46,6 +71,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $this->mfaSessionService->clear($request);
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
@@ -57,24 +83,8 @@ class AuthenticatedSessionController extends Controller
 
     protected function redirectPathFor(Request $request): string
     {
-        $user = $request->user();
-
-        if ($user?->hasRole(RoleCode::ADMIN)) {
-            return route('dashboard', absolute: false);
-        }
-
-        if ($user?->hasRole(RoleCode::DIRECTIVO)) {
-            return route('panel.director', absolute: false);
-        }
-
-        if ($user?->hasRole(RoleCode::REVISOR)) {
-            return route('panel.revisor', absolute: false);
-        }
-
-        if ($user?->hasRole(RoleCode::DOCENTE)) {
-            return route('panel.docente', absolute: false);
-        }
-
-        return route('dashboard', absolute: false);
+        return $request->user() !== null
+            ? $this->redirector->for($request->user())
+            : route('dashboard', absolute: false);
     }
 }

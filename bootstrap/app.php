@@ -14,10 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\SyncSessionSecurityFlags::class,
         ]);
 
         $middleware->alias([
             'active.user' => \App\Http\Middleware\EnsureActiveUser::class,
+            'mfa.verified' => \App\Http\Middleware\EnsureMfaIsVerified::class,
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
             'plan.editable' => \App\Http\Middleware\EnsurePlanIsEditable::class,

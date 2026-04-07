@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
+use App\Http\Controllers\Auth\MfaChallengeController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -35,7 +36,18 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active.user'])->group(function () {
+    Route::get('mfa/challenge', [MfaChallengeController::class, 'create'])
+        ->name('mfa.challenge.show');
+
+    Route::post('mfa/challenge', [MfaChallengeController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('mfa.challenge.store');
+
+    Route::post('mfa/challenge/recovery-code', [MfaChallengeController::class, 'storeRecoveryCode'])
+        ->middleware('throttle:6,1')
+        ->name('mfa.challenge.recovery');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

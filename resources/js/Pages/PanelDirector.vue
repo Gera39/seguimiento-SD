@@ -2,808 +2,293 @@
   <div>
     <Header :titulo="tituloPagina" />
 
-    <main class="director-page">
-      <section class="sd-card sd-hero">
-        <div class="sd-hero__top">
+    <main class="space-y-6 p-4 md:p-6">
+      <section class="rounded-[36px] border border-emerald-100 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.15),_transparent_28%),linear-gradient(140deg,_#f0fdf4_0%,_#ffffff_52%,_#ecfeff_100%)] p-6 shadow-sm">
+        <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p class="sd-label">Director</p>
-            <h1 class="sd-title">Panel de alta y asignacion de personal</h1>
-            <p class="sd-copy">
-              Aqui el Director puede crear maestros, definir materia y grado, asignar revisores y decidir
-              que materias y que maestros entraran en cada cola de revision.
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">{{ headline.eyebrow }}</p>
+            <h1 class="mt-3 text-3xl font-semibold text-slate-900">{{ headline.title }}</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+              {{ headline.copy }}
             </p>
           </div>
-          <div class="sd-chip-row">
-            <span class="sd-chip">Visibilidad total</span>
-            <span class="sd-chip">Control de revision</span>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="rounded-2xl border border-white/70 bg-white/90 px-4 py-3">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Universo visible</p>
+              <p class="mt-2 text-3xl font-semibold text-slate-900">{{ summary.totalVisible }}</p>
+            </div>
+            <div class="rounded-2xl border border-white/70 bg-white/90 px-4 py-3">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Filtrado</p>
+              <p class="mt-2 text-3xl font-semibold text-slate-900">{{ summary.filtered }}</p>
+            </div>
           </div>
+        </div>
+
+        <div v-if="status" class="mt-5 rounded-2xl border border-emerald-200 bg-white/90 px-4 py-3 text-sm text-emerald-800">
+          {{ status }}
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <article v-for="metric in metrics" :key="metric.label" class="rounded-3xl border border-white/70 bg-white/90 p-4">
+            <p class="text-xs uppercase tracking-[0.18em] text-slate-400">{{ metric.label }}</p>
+            <p class="mt-2 text-3xl font-semibold text-slate-900">{{ metric.value }}</p>
+            <p class="mt-2 text-sm text-slate-500">{{ metric.caption }}</p>
+          </article>
         </div>
       </section>
 
-      <section class="sd-metrics">
-        <article v-for="metric in metrics" :key="metric.label" class="sd-card sd-metric">
-          <p class="sd-label muted">{{ metric.label }}</p>
-          <p class="sd-metric__value">{{ metric.value }}</p>
-          <p class="sd-copy">{{ metric.caption }}</p>
-        </article>
+      <section class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Filtros ejecutivos</p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Prioriza cierres y revisa el pipeline academico</h2>
+          </div>
+          <button type="button" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" @click="resetFilters">
+            Limpiar filtros
+          </button>
+        </div>
+
+        <form class="mt-6 grid gap-4 xl:grid-cols-[1.2fr_0.9fr_0.9fr_0.9fr_auto]" @submit.prevent="applyFilters">
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Busqueda</span>
+            <input
+              v-model="localFilters.search"
+              type="text"
+              class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4"
+              placeholder="Folio, asignatura, docente o carrera"
+            />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Estatus</span>
+            <select v-model="localFilters.status" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4">
+              <option value="">Todos</option>
+              <option v-for="option in statusOptions" :key="option.code" :value="option.code">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Carrera</span>
+            <select v-model="localFilters.career" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4">
+              <option :value="null">Todas</option>
+              <option v-for="option in careerOptions" :key="option.id" :value="option.id">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Periodo</span>
+            <select v-model="localFilters.period" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4">
+              <option :value="null">Todos</option>
+              <option v-for="option in periodOptions" :key="option.id" :value="option.id">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <div class="flex items-end">
+            <button type="submit" class="h-12 rounded-full bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700">
+              Aplicar
+            </button>
+          </div>
+        </form>
       </section>
 
-      <section class="sd-grid">
-        <article class="sd-card">
-          <div class="sd-section">
-            <div>
-              <p class="sd-label muted">Configuracion</p>
-              <h2 class="sd-section__title">Crear perfil</h2>
-            </div>
-            <span class="sd-pill">Rol + cobertura</span>
+      <section class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Cola de direccion</p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Planeaciones para seguimiento y cierre</h2>
           </div>
+          <p class="text-sm text-slate-500">{{ summary.filtered }} registros listados.</p>
+        </div>
 
-          <div v-if="message" class="sd-message">
-            {{ message }}
-          </div>
-
-          <form class="sd-form" @submit.prevent="saveProfile">
-            <div class="sd-form__grid">
-              <label class="sd-field">
-                <span class="sd-label">Nombre</span>
-                <input v-model="form.nombre" type="text" class="sd-control" placeholder="Nombre completo" />
-              </label>
-
-              <label class="sd-field">
-                <span class="sd-label">Correo</span>
-                <input v-model="form.correo" type="email" class="sd-control" placeholder="correo@escuela.edu" />
-              </label>
-
-              <label class="sd-field">
-                <span class="sd-label">Rol</span>
-                <select v-model="form.rol" class="sd-control" @change="handleRoleChange">
-                  <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
-                </select>
-              </label>
-
-              <label class="sd-field">
-                <span class="sd-label">{{ form.rol === "Revisor" ? "Materia base" : "Materia a cargo" }}</span>
-                <select v-model="form.materia" class="sd-control" :disabled="form.rol === 'Director'">
-                  <option value="">Selecciona una materia</option>
-                  <option v-for="materia in materias" :key="materia.nombre" :value="materia.nombre">
-                    {{ materia.nombre }}
-                  </option>
-                </select>
-              </label>
-
-              <label class="sd-field">
-                <span class="sd-label">{{ form.rol === "Director" ? "Cobertura" : "Grado" }}</span>
-                <select v-model="form.grado" class="sd-control" :disabled="form.rol === 'Director'">
-                  <option value="">{{ form.rol === "Director" ? "Toda la escuela" : "Selecciona un grado" }}</option>
-                  <option v-for="grado in grados" :key="grado" :value="grado">{{ grado }}</option>
-                </select>
-              </label>
-
-              <label class="sd-field">
-                <span class="sd-label">Estado inicial</span>
-                <select v-model="form.estado" class="sd-control">
-                  <option value="Activo">Activo</option>
-                  <option value="Pendiente">Pendiente</option>
-                </select>
-              </label>
-            </div>
-
-            <section v-if="isReviewer" class="sd-accordion">
-              <button type="button" class="sd-accordion__trigger" @click="reviewOpen = !reviewOpen">
-                <span>Configuracion del revisor</span>
-                <span>{{ reviewOpen ? "Ocultar" : "Mostrar" }}</span>
-              </button>
-
-              <div v-if="reviewOpen" class="sd-accordion__content">
-                <div class="sd-form__grid">
-                  <div class="sd-field">
-                    <span class="sd-label">Materias que revisara</span>
-                    <div class="sd-tags">
-                      <label
-                        v-for="materia in materias"
-                        :key="materia.nombre"
-                        class="sd-tag"
-                        :style="getMateriaStyle(materia.color, form.materiasRevision.includes(materia.nombre))"
-                      >
-                        <input v-model="form.materiasRevision" type="checkbox" class="sr-only" :value="materia.nombre" />
-                        <span>{{ materia.nombre }}</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div class="sd-field">
-                    <span class="sd-label">Maestros que revisara</span>
-                    <div v-if="teacherOptions.length" class="sd-checklist">
-                      <label v-for="teacher in teacherOptions" :key="teacher.id" class="sd-check">
-                        <input v-model="form.maestrosAsignados" type="checkbox" :value="teacher.id" />
-                        <span>{{ teacher.nombre }}</span>
-                        <small>{{ teacher.materia || "Sin materia" }} / {{ teacher.grado || "Sin grado" }}</small>
-                      </label>
-                    </div>
-                    <div v-else class="sd-empty sd-empty--inline">
-                      Primero crea al menos un maestro para habilitar la asignacion de revision.
-                    </div>
-                  </div>
+        <div v-if="plans.length" class="mt-6 grid gap-4">
+          <article v-for="plan in plans" :key="plan.id" class="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div class="space-y-2">
+                <div class="flex flex-wrap items-center gap-3">
+                  <p class="text-xl font-semibold text-slate-900">{{ plan.subject }}</p>
+                  <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="statusClass(plan.statusCode)">
+                    {{ plan.statusName }}
+                  </span>
                 </div>
+                <p class="text-sm text-slate-500">{{ plan.folio }} · {{ plan.teacher }}</p>
+                <p class="text-sm text-slate-500">{{ plan.career }} · Grupo {{ plan.group }} · {{ plan.period }}</p>
               </div>
-            </section>
 
-            <div class="sd-actions">
-              <button type="submit" class="sd-button">Guardar perfil</button>
-              <p class="sd-copy">
-                Si el rol es Revisor se abre una seccion adicional para seleccionar materias y maestros.
-              </p>
-            </div>
-          </form>
-        </article>
-
-        <article class="sd-card">
-          <div class="sd-section">
-            <div>
-              <p class="sd-label muted">Resumen del rol</p>
-              <h2 class="sd-section__title">Cobertura visible</h2>
-            </div>
-          </div>
-
-          <div class="sd-stack">
-            <div v-for="role in roleCards" :key="role.nombre" class="sd-mini-card">
-              <div class="sd-mini-card__top">
-                <p class="sd-row__title">{{ role.nombre }}</p>
-                <span class="sd-role" :style="role.style">{{ role.resumen }}</span>
-              </div>
-              <p class="sd-copy">{{ role.descripcion }}</p>
-            </div>
-          </div>
-
-          <div class="sd-panel">
-            <p class="sd-label muted">Estatus que observa el Director</p>
-            <div class="sd-statuses">
-              <span
-                v-for="status in statusBadges"
-                :key="status.label"
-                class="sd-status"
-                :style="{ backgroundColor: status.background, color: status.color }"
-              >
-                {{ status.label }}
-              </span>
-            </div>
-          </div>
-
-          <div class="sd-panel">
-            <p class="sd-label muted">Seleccion actual</p>
-            <div class="sd-summary">
-              <div class="sd-row">
-                <span>Rol</span>
-                <strong>{{ form.rol }}</strong>
-              </div>
-              <div class="sd-row">
-                <span>Materia</span>
-                <strong>{{ form.materia || "Sin definir" }}</strong>
-              </div>
-              <div class="sd-row">
-                <span>Grado</span>
-                <strong>{{ form.rol === "Director" ? "Toda la escuela" : form.grado || "Sin definir" }}</strong>
-              </div>
-              <div v-if="isReviewer" class="sd-row">
-                <span>Materias de revision</span>
-                <strong>{{ form.materiasRevision.length }}</strong>
-              </div>
-              <div v-if="isReviewer" class="sd-row">
-                <span>Maestros asignados</span>
-                <strong>{{ form.maestrosAsignados.length }}</strong>
+              <div class="flex flex-wrap gap-3">
+                <Link :href="plan.primaryAction.url" class="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                  {{ plan.primaryAction.label }}
+                </Link>
+                <Link :href="plan.detailUrl" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
+                  Ver detalle
+                </Link>
               </div>
             </div>
-          </div>
-        </article>
-      </section>
 
-      <section class="sd-grid">
-        <article class="sd-card">
-          <div class="sd-section">
-            <div>
-              <p class="sd-label muted">Personal registrado</p>
-              <h2 class="sd-section__title">Vista del Director</h2>
-            </div>
-            <span class="sd-pill">{{ profiles.length }} perfiles</span>
-          </div>
-
-          <div class="sd-table__wrap">
-            <table class="sd-table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Rol</th>
-                  <th>Materia</th>
-                  <th>Grado</th>
-                  <th>Asignacion</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody v-if="profiles.length">
-                <tr v-for="profile in profiles" :key="profile.id">
-                  <td>
-                    <div class="sd-row__title">{{ profile.nombre }}</div>
-                    <div class="sd-copy">{{ profile.correo }}</div>
-                  </td>
-                  <td><span class="sd-role" :style="getRoleStyle(profile.rol)">{{ profile.rol }}</span></td>
-                  <td>{{ profile.materia || "Global" }}</td>
-                  <td>{{ profile.grado || (profile.rol === "Director" ? "Toda la escuela" : "Sin definir") }}</td>
-                  <td>{{ getAssignmentLabel(profile) }}</td>
-                  <td><span class="sd-pill">{{ profile.estado }}</span></td>
-                </tr>
-              </tbody>
-              <tbody v-else>
-                <tr>
-                  <td colspan="6" class="sd-empty sd-empty--cell">
-                    Todavia no hay perfiles creados. Usa el formulario para dar de alta maestros o revisores.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-
-        <article class="sd-card">
-          <div class="sd-section">
-            <div>
-              <p class="sd-label muted">Cobertura por materia</p>
-              <h2 class="sd-section__title">Mapa rapido</h2>
-            </div>
-          </div>
-
-          <div class="sd-subjects">
-            <div v-for="materia in materias" :key="materia.nombre" class="sd-subject">
-              <div class="sd-subject__name">
-                <span class="sd-subject__dot" :style="{ backgroundColor: materia.color }" />
-                <span>{{ materia.nombre }}</span>
+            <div class="mt-5 grid gap-4 lg:grid-cols-3">
+              <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Seguimiento</p>
+                <p class="mt-2 text-sm text-slate-600">Movimiento: {{ plan.submittedAt || plan.updatedAt || "Sin fecha" }}</p>
+                <p class="mt-1 text-sm text-slate-600">Ronda: {{ plan.reviewRound }}</p>
               </div>
-              <div class="sd-copy">
-                {{ teacherCount(materia.nombre) }} maestro(s) / {{ reviewerCount(materia.nombre) }} revisor(es)
+
+              <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Observaciones</p>
+                <p class="mt-2 text-sm text-slate-600">{{ plan.openComments }} comentarios abiertos.</p>
+                <p class="mt-1 text-sm text-slate-600">Accion sugerida: {{ plan.primaryAction.label }}</p>
+              </div>
+
+              <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Ultimo dictamen</p>
+                <p v-if="plan.latestReview" class="mt-2 text-sm text-slate-600">
+                  {{ plan.latestReview.stage }} · {{ plan.latestReview.reviewedAt || "Sin fecha" }}
+                </p>
+                <p class="mt-1 text-sm leading-6 text-slate-600">
+                  {{ plan.latestReview?.generalComments || "Aun no se ha capturado comentario general para esta planeacion." }}
+                </p>
               </div>
             </div>
-          </div>
+          </article>
+        </div>
 
-          <div class="sd-panel">
-            <p class="sd-label muted">Logica de revision</p>
-            <p class="sd-copy">
-              Un revisor puede quedar ligado a una o varias materias y tambien a uno o varios maestros.
-              Con eso el Director distribuye la cola con mas precision.
-            </p>
-          </div>
-        </article>
+        <div v-else class="mt-6 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+          <p class="text-lg font-semibold text-slate-900">No hay planeaciones para este corte.</p>
+          <p class="mt-2 text-sm text-slate-500">Ajusta los filtros o espera nuevas revisiones tecnicas para autorizar.</p>
+        </div>
       </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { reactive } from "vue";
+import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Header from "@/components/Header.vue";
 
 defineOptions({ layout: AppLayout });
 
-type Role = "Director" | "Maestro" | "Revisor";
-
-interface Profile {
-  id: string;
-  nombre: string;
-  correo: string;
-  rol: Role;
-  materia: string;
-  grado: string;
-  estado: string;
-  materiasRevision: string[];
-  maestrosAsignados: string[];
-}
-
-const tituloPagina = {
-  text: "Panel del Director",
-  links: ["Paneles", "Director"],
+type Option = {
+  id: number;
+  name: string;
 };
 
-const roles: Role[] = ["Director", "Maestro", "Revisor"];
+type StatusOption = {
+  code: string;
+  name: string;
+};
 
-const materias = [
-  { nombre: "Matem\u00e1ticas", color: "#534AB7" },
-  { nombre: "Espa\u00f1ol", color: "#1D9E75" },
-  { nombre: "Ciencias", color: "#185FA5" },
-  { nombre: "Historia", color: "#D85A30" },
-  { nombre: "Geograf\u00eda", color: "#639922" },
-  { nombre: "Ed. F\u00edsica", color: "#D4537E" },
-];
+type QueuePlan = {
+  id: number;
+  folio: string;
+  subject: string;
+  teacher: string;
+  career: string;
+  group: string;
+  period: string;
+  statusCode: string;
+  statusName: string;
+  submittedAt: string | null;
+  updatedAt: string | null;
+  reviewRound: number;
+  openComments: number;
+  detailUrl: string;
+  primaryAction: {
+    label: string;
+    url: string;
+  };
+  latestReview?: {
+    stage: string;
+    reviewer: string;
+    reviewedAt: string | null;
+    generalComments: string;
+  } | null;
+};
 
-const grados = ["1\u00b0", "2\u00b0", "3\u00b0", "4\u00b0", "5\u00b0", "6\u00b0"];
+const props = defineProps<{
+  headline: {
+    eyebrow: string;
+    title: string;
+    copy: string;
+  };
+  baseUrl: string;
+  filters: {
+    search: string;
+    status: string;
+    career: number | null;
+    period: number | null;
+  };
+  statusOptions: StatusOption[];
+  careerOptions: Option[];
+  periodOptions: Option[];
+  metrics: Array<{
+    label: string;
+    value: number;
+    caption: string;
+  }>;
+  summary: {
+    totalVisible: number;
+    filtered: number;
+  };
+  plans: QueuePlan[];
+  status?: string | null;
+}>();
 
-const statusBadges = [
-  { label: "Borrador", background: "#D3D1C7", color: "#444441" },
-  { label: "En revisi\u00f3n", background: "#FAC775", color: "#633806" },
-  { label: "Aprobada", background: "#C0DD97", color: "#27500A" },
-  { label: "Rechazada", background: "#F7C1C1", color: "#791F1F" },
-];
+const tituloPagina = {
+  text: "Panel del director",
+  links: ["Paneles", "Direccion academica"],
+};
 
-const profiles = ref<Profile[]>([]);
-const reviewOpen = ref(false);
-const message = ref("");
-
-const form = reactive({
-  nombre: "",
-  correo: "",
-  rol: "Maestro" as Role,
-  materia: "",
-  grado: "",
-  estado: "Activo",
-  materiasRevision: [] as string[],
-  maestrosAsignados: [] as string[],
+const localFilters = reactive({
+  search: props.filters.search ?? "",
+  status: props.filters.status ?? "",
+  career: props.filters.career ?? null,
+  period: props.filters.period ?? null,
 });
 
-const isReviewer = computed(() => form.rol === "Revisor");
+const applyFilters = () => {
+  router.get(
+    props.baseUrl,
+    {
+      ...(localFilters.search ? { search: localFilters.search } : {}),
+      ...(localFilters.status ? { status: localFilters.status } : {}),
+      ...(localFilters.career ? { career: localFilters.career } : {}),
+      ...(localFilters.period ? { period: localFilters.period } : {}),
+    },
+    {
+      preserveScroll: true,
+      preserveState: true,
+      replace: true,
+    },
+  );
+};
 
-const teacherOptions = computed(() =>
-  profiles.value.filter((profile) => profile.rol === "Maestro"),
-);
+const resetFilters = () => {
+  localFilters.search = "";
+  localFilters.status = "";
+  localFilters.career = null;
+  localFilters.period = null;
 
-const metrics = computed(() => [
-  { label: "Personal total", value: pad(profiles.value.length), caption: "Perfiles visibles en este panel" },
-  { label: "Maestros", value: pad(teacherOptions.value.length), caption: "Responsables de secuencias" },
-  { label: "Revisores", value: pad(profiles.value.filter((item) => item.rol === "Revisor").length), caption: "Colas configuradas" },
-  { label: "Materias cubiertas", value: pad(new Set(profiles.value.map((item) => item.materia).filter(Boolean)).size), caption: "Areas con responsable" },
-]);
+  router.get(props.baseUrl, {}, { preserveScroll: true, preserveState: true, replace: true });
+};
 
-const roleCards = [
-  {
-    nombre: "Director",
-    resumen: "Visibilidad total",
-    descripcion: "Ve toda la escuela, aprueba o rechaza y supervisa reportes globales.",
-    style: getRoleStyle("Director"),
-  },
-  {
-    nombre: "Maestro",
-    resumen: "Gestiona secuencias",
-    descripcion: "Trabaja sus propias secuencias, corrige y vuelve a enviar cuando haga falta.",
-    style: getRoleStyle("Maestro"),
-  },
-  {
-    nombre: "Revisor",
-    resumen: "Dictamina con comentario",
-    descripcion: "Recibe la cola asignada y emite una decision con observacion obligatoria.",
-    style: getRoleStyle("Revisor"),
-  },
-];
-
-function handleRoleChange() {
-  reviewOpen.value = form.rol === "Revisor";
-
-  if (form.rol === "Director") {
-    form.materia = "";
-    form.grado = "";
+const statusClass = (statusCode: string) => {
+  if (statusCode === "SUBMITTED") {
+    return "bg-amber-100 text-amber-700";
   }
 
-  if (form.rol !== "Revisor") {
-    form.materiasRevision = [];
-    form.maestrosAsignados = [];
-  }
-}
-
-function saveProfile() {
-  if (!form.nombre || !form.correo) {
-    message.value = "Completa nombre y correo para guardar el perfil.";
-    return;
+  if (statusCode === "UNDER_REVIEW") {
+    return "bg-sky-100 text-sky-700";
   }
 
-  if (form.rol !== "Director" && (!form.materia || !form.grado)) {
-    message.value = "Selecciona materia y grado para maestros o revisores.";
-    return;
+  if (statusCode === "FEEDBACK") {
+    return "bg-rose-100 text-rose-700";
   }
 
-  if (form.rol === "Revisor" && !form.materiasRevision.length) {
-    message.value = "Selecciona al menos una materia de revision.";
-    return;
+  if (statusCode === "AUTHORIZED") {
+    return "bg-emerald-100 text-emerald-700";
   }
 
-  profiles.value.unshift({
-    id: `perfil-${String(profiles.value.length + 1).padStart(3, "0")}`,
-    nombre: form.nombre,
-    correo: form.correo,
-    rol: form.rol,
-    materia: form.materia,
-    grado: form.grado,
-    estado: form.estado,
-    materiasRevision: [...form.materiasRevision],
-    maestrosAsignados: [...form.maestrosAsignados],
-  });
-
-  message.value = `${form.nombre} quedo registrado como ${form.rol}.`;
-
-  Object.assign(form, {
-    nombre: "",
-    correo: "",
-    rol: "Maestro" as Role,
-    materia: "",
-    grado: "",
-    estado: "Activo",
-    materiasRevision: [],
-    maestrosAsignados: [],
-  });
-
-  reviewOpen.value = false;
-}
-
-function getAssignmentLabel(profile: Profile) {
-  if (profile.rol === "Director") return "Escuela completa";
-  if (profile.rol === "Revisor") return `${profile.materiasRevision.length} materia(s) / ${profile.maestrosAsignados.length} maestro(s)`;
-  return `${profile.materia} / ${profile.grado}`;
-}
-
-function teacherCount(materia: string) {
-  return profiles.value.filter((item) => item.rol === "Maestro" && item.materia === materia).length;
-}
-
-function reviewerCount(materia: string) {
-  return profiles.value.filter((item) => item.rol === "Revisor" && item.materiasRevision.includes(materia)).length;
-}
-
-function pad(value: number) {
-  return String(value).padStart(2, "0");
-}
-
-function getRoleStyle(role: Role) {
-  if (role === "Director") return { backgroundColor: "rgba(24, 95, 165, 0.12)", color: "#185FA5" };
-  if (role === "Revisor") return { backgroundColor: "rgba(212, 83, 126, 0.12)", color: "#D4537E" };
-  return { backgroundColor: "rgba(29, 158, 117, 0.12)", color: "#1D9E75" };
-}
-
-function getMateriaStyle(color: string, selected: boolean) {
-  return {
-    borderColor: selected ? color : "var(--color-border-tertiary)",
-    backgroundColor: selected ? `${color}14` : "transparent",
-    color,
-  };
-}
+  return "bg-slate-100 text-slate-700";
+};
 </script>
-
-<style scoped>
-.director-page {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  background: transparent;
-}
-
-.sd-card,
-.sd-panel,
-.sd-mini-card,
-.sd-accordion {
-  border: 0.5px solid var(--color-border-tertiary);
-  border-radius: 12px;
-  background: var(--color-background-secondary);
-}
-
-.sd-hero,
-.sd-form,
-.sd-stack,
-.sd-table__wrap,
-.sd-subjects,
-.sd-panel {
-  padding: 18px;
-}
-
-.sd-hero__top,
-.sd-section,
-.sd-actions,
-.sd-mini-card__top,
-.sd-row,
-.sd-subject,
-.sd-subject__name {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.sd-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.sd-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
-  gap: 16px;
-}
-
-.sd-form__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.sd-field,
-.sd-summary,
-.sd-checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sd-label,
-.sd-pill,
-.sd-chip,
-.sd-status,
-.sd-role {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.muted,
-.sd-copy,
-.sd-table th,
-.sd-table td {
-  color: var(--color-text-secondary);
-}
-
-.sd-title,
-.sd-section__title,
-.sd-metric__value,
-.sd-row__title {
-  color: var(--color-text-primary);
-  font-weight: 500;
-}
-
-.sd-title,
-.sd-metric__value {
-  font-size: 26px;
-  line-height: 1.1;
-}
-
-.sd-section {
-  padding: 18px 18px 0;
-}
-
-.sd-section__title {
-  font-size: 18px;
-  line-height: 1.2;
-}
-
-.sd-copy,
-.sd-control,
-.sd-table td,
-.sd-table th,
-.sd-check,
-.sd-subject,
-.sd-tag {
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.5;
-}
-
-.sd-chip-row,
-.sd-statuses,
-.sd-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.sd-chip,
-.sd-pill,
-.sd-status,
-.sd-role,
-.sd-tag {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 0.5px solid var(--color-border-tertiary);
-}
-
-.sd-chip,
-.sd-pill {
-  color: var(--color-text-secondary);
-  background: transparent;
-}
-
-.sd-control,
-.sd-button,
-.sd-accordion__trigger,
-.sd-check,
-.sd-table {
-  border: 0.5px solid var(--color-border-secondary);
-  border-radius: 8px;
-}
-
-.sd-control {
-  min-height: 40px;
-  padding: 0 12px;
-  background: transparent;
-  color: var(--color-text-primary);
-}
-
-.sd-control:disabled {
-  color: var(--color-text-tertiary);
-  background: rgba(68, 68, 65, 0.03);
-}
-
-.sd-accordion {
-  margin-top: 16px;
-}
-
-.sd-accordion__trigger {
-  width: 100%;
-  min-height: 40px;
-  padding: 0 14px;
-  background: transparent;
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.sd-accordion__content {
-  padding: 14px;
-}
-
-.sd-tag {
-  cursor: pointer;
-}
-
-.sd-check {
-  display: grid;
-  grid-template-columns: 16px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-}
-
-.sd-check small {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.sd-actions {
-  margin-top: 16px;
-}
-
-.sd-button {
-  min-height: 40px;
-  padding: 0 14px;
-  background: #185FA5;
-  border-color: #185FA5;
-  color: #FFFFFF;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.sd-message,
-.sd-empty {
-  padding: 12px;
-  border: 0.5px solid var(--color-border-tertiary);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
-}
-
-.sd-message {
-  margin: 16px 18px 0;
-}
-
-.sd-empty--inline {
-  margin: 0;
-}
-
-.sd-empty--cell {
-  text-align: left;
-}
-
-.sd-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sd-mini-card {
-  padding: 14px;
-}
-
-.sd-summary {
-  margin-top: 10px;
-}
-
-.sd-row strong {
-  color: var(--color-text-primary);
-  font-weight: 500;
-}
-
-.sd-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.sd-table th,
-.sd-table td {
-  padding: 12px;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
-  text-align: left;
-  vertical-align: top;
-}
-
-.sd-table th {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.sd-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.sd-subjects {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.sd-subject {
-  padding: 14px 18px;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
-}
-
-.sd-subject:last-child {
-  border-bottom: none;
-}
-
-.sd-subject__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  margin-top: 4px;
-}
-
-@media (max-width: 1100px) {
-  .sd-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 860px) {
-  .sd-metrics,
-  .sd-form__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .sd-hero__top,
-  .sd-section,
-  .sd-actions {
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 640px) {
-  .director-page {
-    padding: 12px;
-  }
-
-  .sd-metrics,
-  .sd-form__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .sd-check {
-    grid-template-columns: 16px 1fr;
-  }
-
-  .sd-check small {
-    grid-column: 2;
-  }
-
-  .sd-table {
-    display: block;
-    overflow-x: auto;
-  }
-}
-</style>

@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Planning\DidacticPlanController;
+use App\Http\Controllers\Planning\PlanningInboxController;
 use App\Http\Controllers\Planning\DidacticPlanTransitionController;
+use App\Http\Controllers\ProfileMfaController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -14,7 +16,7 @@ Route::get('/recuperar-contrasena', function () {
     return Inertia::render('PasswordRecoveryView');
 })->name('password.recovery');
 
-Route::middleware(['auth', 'active.user'])->group(function () {
+Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
     Route::get('/dashboard', function () {
         return Inertia::render('DashboardView');
     })->name('dashboard');
@@ -45,13 +47,11 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     });
 
     Route::middleware('role:REVISOR')->group(function () {
-        Route::get('/panel-revisor', function () {
-            return Inertia::render('PanelRevisor');
-        })->name('panel.revisor');
+        Route::get('/panel-revisor', [PlanningInboxController::class, 'reviewerDashboard'])
+            ->name('panel.revisor');
 
-        Route::get('/validaciones', function () {
-            return Inertia::render('ValidacionSecuencias');
-        })->name('demo.validaciones');
+        Route::get('/validaciones', [PlanningInboxController::class, 'reviewerQueue'])
+            ->name('demo.validaciones');
 
         Route::get('/visualizacion-validacion/{didacticPlan}', [DidacticPlanTransitionController::class, 'showReview'])
             ->name('plans.review.show');
@@ -62,13 +62,11 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     });
 
     Route::middleware('role:DIRECTIVO')->group(function () {
-        Route::get('/panel-director', function () {
-            return Inertia::render('PanelDirector');
-        })->name('panel.director');
+        Route::get('/panel-director', [PlanningInboxController::class, 'directorDashboard'])
+            ->name('panel.director');
 
-        Route::get('/panel-coordinacion', function () {
-            return Inertia::render('PanelDirector');
-        })->name('panel.coordinacion');
+        Route::get('/panel-coordinacion', [PlanningInboxController::class, 'directorDashboard'])
+            ->name('panel.coordinacion');
 
         Route::get('/validacion-final/{didacticPlan}', [DidacticPlanTransitionController::class, 'showFinalValidation'])
             ->name('plans.final.show');
@@ -103,6 +101,11 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/mfa', [ProfileMfaController::class, 'store'])->name('profile.mfa.store');
+    Route::post('/profile/mfa/confirm', [ProfileMfaController::class, 'confirm'])->name('profile.mfa.confirm');
+    Route::delete('/profile/mfa', [ProfileMfaController::class, 'destroy'])->name('profile.mfa.destroy');
+    Route::delete('/profile/mfa/pending', [ProfileMfaController::class, 'cancel'])->name('profile.mfa.cancel');
+    Route::post('/profile/mfa/recovery-codes', [ProfileMfaController::class, 'regenerateRecoveryCodes'])->name('profile.mfa.recovery-codes');
 });
 
 require __DIR__.'/auth.php';
