@@ -20,11 +20,6 @@
         </div>
       </div>
 
-      <div class="hidden items-center gap-2 md:flex">
-        <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-          Solo diseno
-        </span>
-      </div>
     </div>
   </header>
 </template>
