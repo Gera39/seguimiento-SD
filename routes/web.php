@@ -16,6 +16,18 @@ Route::get('/dashboard', function () {
     return Inertia::render('DashboardView');
 })->name('dashboard');
 
+Route::get('/panel-docente', function () {
+    return Inertia::render('PanelDocente');
+})->name('panel.docente');
+
+Route::get('/panel-revisor', function () {
+    return Inertia::render('PanelRevisor');
+})->name('panel.revisor');
+
+Route::get('/panel-coordinacion', function () {
+    return Inertia::render('PanelCoordinacion');
+})->name('panel.coordinacion');
+
 Route::get('/prueba', function () {
     return Inertia::render('PuebaView');
 })->name('demo.preview');

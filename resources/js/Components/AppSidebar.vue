@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SidebarProps } from "@/components/ui/sidebar";
-import { BookOpen, FileBarChart2, Home, Settings2, ShieldCheck, Upload, Users } from "lucide-vue-next";
+import { BookOpen, BriefcaseBusiness, FileBarChart2, Home, ShieldCheck, Upload, Users } from "lucide-vue-next";
 import NavMain from "@/components/NavMain.vue";
 import NavUser from "@/components/NavUser.vue";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarRail } from "@/components/ui/sidebar";
@@ -16,6 +16,15 @@ const menuItems = [
     items: [
       { title: "Dashboard", url: "/dashboard" },
       { title: "Vista de prueba", url: "/prueba" },
+    ],
+  },
+  {
+    title: "Paneles",
+    icon: BriefcaseBusiness,
+    items: [
+      { title: "Panel docente", url: "/panel-docente" },
+      { title: "Panel revisor", url: "/panel-revisor" },
+      { title: "Panel coordinacion", url: "/panel-coordinacion" },
     ],
   },
   {
