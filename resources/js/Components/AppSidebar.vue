@@ -24,7 +24,7 @@ const menuItems = [
     items: [
       { title: "Panel docente", url: "/panel-docente" },
       { title: "Panel revisor", url: "/panel-revisor" },
-      { title: "Panel coordinacion", url: "/panel-coordinacion" },
+      { title: "Panel director", url: "/panel-director" },
     ],
   },
   {
@@ -49,16 +49,20 @@ const menuItems = [
     title: "Revision",
     icon: ShieldCheck,
     items: [
-      { title: "Revision visual", url: "/visualizacion-validacion" },
-      { title: "Validacion final", url: "/validacion-final" },
-      { title: "Ver secuencia", url: "/visualizacion-secuencia" },
+      { title: "Panel revisor", url: "/panel-revisor" },
+      { title: "Panel director", url: "/panel-director" },
+      { title: "Mis secuencias", url: "/mis-secuencias" },
     ],
   },
 ];
 </script>
 
 <template>
-  <Sidebar v-bind="props" class="border-r border-slate-200 bg-white">
+  <Sidebar
+    v-bind="props"
+    class="border-r bg-white"
+    style="--sidebar-width: 200px; border-right: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary);"
+  >
     <SidebarContent>
       <NavMain :items="menuItems" />
     </SidebarContent>

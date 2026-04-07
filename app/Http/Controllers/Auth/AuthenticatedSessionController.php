@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Domain\Security\Enums\RoleCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Login', [
+        return Inertia::render('Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
         ]);
@@ -33,7 +34,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $request->user()?->forceFill([
+            'last_login_at' => now(),
+        ])->save();
+
+        return redirect()->intended($this->redirectPathFor($request));
     }
 
     /**
@@ -48,5 +53,28 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    protected function redirectPathFor(Request $request): string
+    {
+        $user = $request->user();
+
+        if ($user?->hasRole(RoleCode::ADMIN)) {
+            return route('dashboard', absolute: false);
+        }
+
+        if ($user?->hasRole(RoleCode::DIRECTIVO)) {
+            return route('panel.director', absolute: false);
+        }
+
+        if ($user?->hasRole(RoleCode::REVISOR)) {
+            return route('panel.revisor', absolute: false);
+        }
+
+        if ($user?->hasRole(RoleCode::DOCENTE)) {
+            return route('panel.docente', absolute: false);
+        }
+
+        return route('dashboard', absolute: false);
     }
 }

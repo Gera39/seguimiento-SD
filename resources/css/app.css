@@ -75,6 +75,13 @@ html, body {
   --color-negro: #111827;
   --color-gris: #F3F4F6;
   --color-blanco: #FFFFFF;
+  --color-background-primary: transparent;
+  --color-background-secondary: #FFFFFF;
+  --color-text-primary: #25231E;
+  --color-text-secondary: #5E5A52;
+  --color-text-tertiary: #7E7A73;
+  --color-border-tertiary: rgba(68, 68, 65, 0.16);
+  --color-border-secondary: rgba(68, 68, 65, 0.24);
 
   --background: #FFFFFF;
   --foreground: #111827;
@@ -192,7 +199,7 @@ html, body {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: var(--color-background-primary);
   }
 }
-

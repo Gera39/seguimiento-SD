@@ -1,7 +1,7 @@
 <template>
   <SidebarProvider>
     <AppSidebar />
-    <SidebarInset class="bg-slate-100/80">
+    <SidebarInset class="app-shell">
       <div class="min-h-screen">
         <slot />
       </div>
@@ -13,3 +13,9 @@
 import AppSidebar from "@/components/AppSidebar.vue";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 </script>
+
+<style scoped>
+.app-shell {
+  background: var(--color-background-primary);
+}
+</style>

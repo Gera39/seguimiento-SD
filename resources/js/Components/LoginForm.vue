@@ -1,30 +1,32 @@
 <template>
   <div class="space-y-5">
-    <form class="space-y-4">
+    <form class="space-y-4" @submit.prevent="submit">
       <div class="space-y-2">
         <label class="text-sm font-medium text-slate-700">Correo institucional</label>
         <input
-          v-model="email"
+          v-model="form.email"
           type="email"
           class="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
           placeholder="nombre@uth.edu.mx"
           autocomplete="email"
         />
+        <p v-if="form.errors.email" class="text-sm text-rose-600">
+          {{ form.errors.email }}
+        </p>
       </div>
 
       <div class="space-y-2">
         <label class="text-sm font-medium text-slate-700">Contrasena</label>
         <input
-          v-model="password"
+          v-model="form.password"
           type="password"
           class="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
           placeholder="Escribe tu contrasena"
           autocomplete="current-password"
         />
-      </div>
-
-      <div class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        Vista demo de acceso. El formulario ya esta limpio y listo para conectarlo despues con Laravel.
+        <p v-if="form.errors.password" class="text-sm text-rose-600">
+          {{ form.errors.password }}
+        </p>
       </div>
 
       <div class="flex items-center justify-between gap-3 text-sm">
@@ -38,28 +40,30 @@
       </div>
 
       <button
-        type="button"
+        type="submit"
+        :disabled="form.processing"
         class="h-12 w-full rounded-2xl bg-teal-600 text-sm font-semibold text-white transition hover:bg-teal-700"
+        :class="{ 'cursor-not-allowed opacity-70': form.processing }"
       >
-        Entrar al sistema
+        {{ form.processing ? "Validando acceso..." : "Entrar al sistema" }}
       </button>
     </form>
 
-    <div class="grid gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-      <div class="flex items-center justify-between">
-        <span>Estado visual</span>
-        <span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Listo</span>
-      </div>
-      <p>
-        Se eliminaron validaciones, store y modal de autenticacion para dejar solo la interfaz base.
-      </p>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { useForm } from "@inertiajs/vue3";
 
-const email = ref("");
-const password = ref("");
+const form = useForm({
+  email: "",
+  password: "",
+  remember: false,
+});
+
+const submit = () => {
+  form.post("/login", {
+    onFinish: () => form.reset("password"),
+  });
+};
 </script>

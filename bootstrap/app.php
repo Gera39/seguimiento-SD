@@ -16,7 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'active.user' => \App\Http\Middleware\EnsureActiveUser::class,
+            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+            'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
+            'plan.editable' => \App\Http\Middleware\EnsurePlanIsEditable::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

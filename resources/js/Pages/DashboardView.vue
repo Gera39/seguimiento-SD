@@ -11,7 +11,7 @@
           Sistema visual para seguimiento de secuencias didacticas
         </h1>
         <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-200">
-          Esta portada ya separa el sistema por perfiles institucionales. Desde aqui podemos entrar al panel del docente, del revisor academico o de coordinacion, manteniendo una misma logica de trabajo y una identidad visual comun.
+          Esta portada ya separa el sistema por perfiles institucionales. Desde aqui podemos entrar al panel del maestro, del revisor o del Director, manteniendo una misma logica de trabajo y una identidad visual comun.
         </p>
 
         <div class="mt-8 grid gap-4 sm:grid-cols-3">
@@ -99,15 +99,15 @@ const tituloPagina = {
 };
 
 const metrics = [
-  { label: "Paneles institucionales", value: "03", caption: "Docente, revisor y coordinacion" },
+  { label: "Paneles institucionales", value: "03", caption: "Maestro, revisor y Director" },
   { label: "Un solo sistema", value: "01", caption: "Misma base y mismo flujo" },
   { label: "Estado actual", value: "Demo", caption: "Seguimos en diseno visual" },
 ];
 
 const panels = [
   {
-    role: "Docente",
-    title: "Panel institucional del docente",
+    role: "Maestro",
+    title: "Panel institucional del maestro",
     description: "Vista para crear, actualizar, duplicar y enviar secuencias didacticas a revision.",
     href: "/panel-docente",
     badgeClass: "bg-emerald-100 text-emerald-800",
@@ -122,18 +122,18 @@ const panels = [
     tags: ["Revision", "Rubrica", "Dictamen"],
   },
   {
-    role: "Coordinacion academica",
-    title: "Panel institucional de coordinacion",
-    description: "Vista ejecutiva para monitorear cumplimiento, detectar retrasos y tomar decisiones.",
-    href: "/panel-coordinacion",
+    role: "Director",
+    title: "Panel institucional del Director",
+    description: "Vista ejecutiva para registrar personal, asignar revisión y observar toda la escuela en tiempo real.",
+    href: "/panel-director",
     badgeClass: "bg-amber-100 text-amber-800",
-    tags: ["Indicadores", "Alertas", "Seguimiento"],
+    tags: ["Personal", "Asignaciones", "Supervisión"],
   },
 ];
 
 const steps = [
   { step: "1", title: "Un mismo sistema", description: "Todos los paneles comparten una misma logica institucional, pero cada uno muestra solo lo necesario para su rol." },
-  { step: "2", title: "Experiencia separada", description: "El docente no necesita ver el tablero directivo, y la coordinacion no necesita editar secuencias." },
+  { step: "2", title: "Experiencia separada", description: "El maestro no necesita ver el tablero directivo, y el Director no necesita entrar al detalle de captura." },
   { step: "3", title: "Escalabilidad futura", description: "Despues podemos conectar permisos reales, base de datos y navegacion contextual sin rehacer el diseno." },
 ];
 </script>
