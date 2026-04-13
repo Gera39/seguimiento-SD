@@ -49,13 +49,12 @@ class AuthenticatedSessionController extends Controller
         $fallbackUrl = $this->redirectPathFor($request);
 
         if ($user !== null) {
-            $this->auditService->record($request, 'PASSWORD_LOGIN', true, $user);
+            $this->auditService->record($request, 'LOGIN_SUCCESS', true, $user);
 
             $mfaMethod = $this->mfaManager->primaryMethodFor($user);
 
             if ($mfaMethod !== null) {
                 $this->mfaSessionService->beginChallenge($request, $mfaMethod, $fallbackUrl);
-                $this->auditService->record($request, 'MFA_REQUIRED', true, $user, null, $mfaMethod);
 
                 return redirect()->route('mfa.challenge.show');
             }

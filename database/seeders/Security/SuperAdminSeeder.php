@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Security;
 
 use App\Domain\Security\Enums\RoleCode;
 use App\Models\AcademicGroup;
@@ -8,49 +8,54 @@ use App\Models\AcademicPeriod;
 use App\Models\Career;
 use App\Models\CareerSubject;
 use App\Models\GroupSubjectOffering;
-use App\Models\User;
 use App\Models\Role;
 use App\Models\Subject;
 use App\Models\TeacherSubjectAssignment;
+use App\Models\User;
 use App\Models\UserRoleAssignment;
-use Database\Seeders\Planning\PlanningCatalogSeeder;
-use Database\Seeders\Security\SecurityCatalogSeeder;
-use Database\Seeders\Security\SuperAdminSeeder;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
-class DatabaseSeeder extends Seeder
+class SuperAdminSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        $this->call([
-            SecurityCatalogSeeder::class,
-            PlanningCatalogSeeder::class,
-            SuperAdminSeeder::class,
-        ]);
-
-        $user = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
-        $docenteRoleId = Role::query()
-            ->where('code', RoleCode::DOCENTE->value)
-            ->value('id');
-
-        if ($docenteRoleId !== null) {
-            UserRoleAssignment::query()->firstOrCreate([
-                'user_id' => $user->id,
-                'role_id' => $docenteRoleId,
-                'career_id' => null,
-            ], [
+        $user = User::query()->updateOrCreate(
+            ['email' => env('SUPERADMIN_EMAIL', 'admin@seguimiento-sd.test')],
+            [
+                'employee_number' => env('SUPERADMIN_EMPLOYEE_NUMBER', 'ADMIN-001'),
+                'name' => env('SUPERADMIN_NAME', 'Super Administrador'),
+                'email_verified_at' => now(),
+                'password' => Hash::make(env('SUPERADMIN_PASSWORD', 'Admin12345!')),
+                'must_change_password' => false,
                 'is_active' => true,
-            ]);
+            ],
+        );
+
+        $roleIds = Role::query()
+            ->whereIn('code', [
+                RoleCode::ADMIN->value,
+                RoleCode::DIRECTIVO->value,
+                RoleCode::REVISOR->value,
+                RoleCode::DOCENTE->value,
+            ])
+            ->pluck('id', 'code');
+
+        foreach ($roleIds as $roleId) {
+            UserRoleAssignment::query()->updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'role_id' => $roleId,
+                    'career_id' => null,
+                ],
+                [
+                    'is_active' => true,
+                    'assigned_by_user_id' => $user->id,
+                ],
+            );
         }
 
         $career = Career::query()->firstOrCreate(
@@ -128,7 +133,7 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        TeacherSubjectAssignment::query()->firstOrCreate(
+        TeacherSubjectAssignment::query()->updateOrCreate(
             [
                 'group_subject_offering_id' => $offering->id,
                 'teacher_user_id' => $user->id,

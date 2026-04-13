@@ -30,7 +30,11 @@ class DidacticPlanPolicy
             return (int) $plan->assignment?->teacher_user_id === (int) $user->id;
         }
 
-        return $user->hasAnyRole([RoleCode::REVISOR, RoleCode::DIRECTIVO]);
+        if ($user->hasRole(RoleCode::REVISOR)) {
+            return $user->canReviewCareer($this->planCareerId($plan));
+        }
+
+        return $user->hasRole(RoleCode::DIRECTIVO);
     }
 
     public function create(User $user): bool
@@ -84,5 +88,10 @@ class DidacticPlanPolicy
         return $this->view($user, $plan)
             && $user->hasRole(RoleCode::DIRECTIVO)
             && app(PlanningStateMachine::class)->canTransition($user, $plan, PlanningStatusCode::AUTHORIZED);
+    }
+
+    protected function planCareerId(DidacticPlan $plan): ?int
+    {
+        return $plan->assignment?->offering?->group?->career_id;
     }
 }

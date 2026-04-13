@@ -75,6 +75,12 @@ class MfaAuthenticationTest extends TestCase
 
         $response->assertRedirect(route('dashboard', absolute: false));
         $response->assertSessionHas('auth.mfa_verified', true);
+        $this->assertDatabaseHas('auth_login_audits', [
+            'user_id' => $user->id,
+            'mfa_method_id' => $method->id,
+            'event_type' => 'MFA_SUCCESS',
+            'is_success' => true,
+        ]);
 
         $this->get('/dashboard')->assertOk();
 

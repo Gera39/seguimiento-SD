@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Link, usePage } from "@inertiajs/vue3";
 import type { LucideIcon } from "lucide-vue-next";
 import { ChevronRight } from "lucide-vue-next";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -23,6 +24,16 @@ defineProps<{
     }[];
   }[];
 }>();
+
+const page = usePage();
+
+const isActive = (url: string) => {
+  if (url === "/dashboard") {
+    return page.url === url;
+  }
+
+  return page.url === url || page.url.startsWith(`${url}/`);
+};
 </script>
 
 <template>
@@ -52,9 +63,13 @@ defineProps<{
             <SidebarMenuSub>
               <SidebarMenuSubItem v-for="subItem in item.items" :key="subItem.title">
                 <SidebarMenuSubButton as-child>
-                  <a :href="subItem.url" class="text-slate-600 hover:text-slate-950">
+                  <Link
+                    :href="subItem.url"
+                    class="text-slate-600 transition-colors hover:text-slate-950"
+                    :class="isActive(subItem.url) ? 'font-semibold text-slate-950' : ''"
+                  >
                     <span>{{ subItem.title }}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             </SidebarMenuSub>

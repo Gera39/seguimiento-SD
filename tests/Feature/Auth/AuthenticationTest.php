@@ -28,6 +28,11 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertDatabaseHas('auth_login_audits', [
+            'user_id' => $user->id,
+            'event_type' => 'LOGIN_SUCCESS',
+            'is_success' => true,
+        ]);
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -40,6 +45,12 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertGuest();
+        $this->assertDatabaseHas('auth_login_audits', [
+            'user_id' => $user->id,
+            'event_type' => 'LOGIN_FAILED',
+            'is_success' => false,
+            'failure_reason' => 'invalid_credentials',
+        ]);
     }
 
     public function test_users_can_logout(): void

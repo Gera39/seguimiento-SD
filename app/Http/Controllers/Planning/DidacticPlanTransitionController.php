@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Planning;
 
 use App\Domain\Planning\Enums\PlanningStatusCode;
 use App\Domain\Planning\Enums\PlanningValidationContext;
+use App\Domain\Planning\Services\DidacticPlanCommentSnapshotService;
 use App\Domain\Planning\Services\DidacticPlanValidationService;
 use App\Domain\Planning\StateMachine\PlanningStateMachine;
 use App\Http\Controllers\Controller;
@@ -24,6 +25,7 @@ class DidacticPlanTransitionController extends Controller
     public function __construct(
         protected PlanningStateMachine $stateMachine,
         protected DidacticPlanValidationService $validationService,
+        protected DidacticPlanCommentSnapshotService $commentSnapshotService,
     ) {
     }
 
@@ -35,6 +37,7 @@ class DidacticPlanTransitionController extends Controller
             'assignment.offering.careerSubject.subject',
             'assignment.offering.group.career',
             'units.modules',
+            'evaluationCriteria',
             'reviews.comments',
         ]);
 
@@ -126,7 +129,11 @@ class DidacticPlanTransitionController extends Controller
             ]);
 
             foreach ($request->validated('review_comments') as $commentData) {
-                $review->comments()->create($commentData);
+                $review->comments()->create([
+                    ...$commentData,
+                    'observed_value_snapshot' => $this->commentSnapshotService->capture($plan, $commentData['field_path'] ?? null),
+                    'comment_status_code' => 'OPEN',
+                ]);
             }
 
             $this->stateMachine->transition(
@@ -203,12 +210,26 @@ class DidacticPlanTransitionController extends Controller
             'comments' => $plan->reviews
                 ->flatMap(fn ($review) => $review->comments)
                 ->map(fn ($comment) => [
+                    'id' => $comment->id,
                     'entity_type' => $comment->entity_type,
+                    'field_path' => $comment->field_path,
+                    'field_label' => $comment->field_label,
                     'severity_code' => $comment->severity_code,
                     'comment_text' => $comment->comment_text,
+                    'observed_value_snapshot' => $comment->observed_value_snapshot,
+                    'teacher_response' => $comment->teacher_response,
+                    'updated_value_snapshot' => $comment->updated_value_snapshot,
+                    'comment_status_code' => $comment->comment_status_code,
+                    'resolve_url' => auth()->user()?->hasRole(\App\Domain\Security\Enums\RoleCode::REVISOR)
+                        ? route('plans.comments.resolve', ['didacticPlan' => $plan, 'comment' => $comment], absolute: false)
+                        : null,
+                    'reopen_url' => auth()->user()?->hasRole(\App\Domain\Security\Enums\RoleCode::REVISOR)
+                        ? route('plans.comments.reopen', ['didacticPlan' => $plan, 'comment' => $comment], absolute: false)
+                        : null,
                 ])
                 ->values()
                 ->all(),
+            'commentTargets' => $this->commentSnapshotService->commentTargets($plan),
         ];
     }
 

@@ -27,6 +27,8 @@ class FeedbackDidacticPlanRequest extends FormRequest
             'review_comments' => ['required', 'array', 'min:1'],
             'review_comments.*.entity_type' => ['required', Rule::in(['PLAN', 'UNIT', 'MODULE', 'EVALUATION'])],
             'review_comments.*.entity_id' => ['nullable', 'integer'],
+            'review_comments.*.field_path' => ['nullable', 'string', 'max:150'],
+            'review_comments.*.field_label' => ['nullable', 'string', 'max:200'],
             'review_comments.*.severity_code' => ['required', Rule::in(['INFO', 'WARNING', 'REQUIRED'])],
             'review_comments.*.comment_text' => ['required', 'string', 'max:1000'],
         ];

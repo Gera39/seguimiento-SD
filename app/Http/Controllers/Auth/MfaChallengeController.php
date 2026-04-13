@@ -74,7 +74,7 @@ class MfaChallengeController extends Controller
         $secret = Crypt::decryptString($method->secret_encrypted);
 
         if (! $this->totpService->verify($secret, $request->string('code')->toString())) {
-            $this->auditService->record($request, 'MFA_TOTP', false, $user, 'invalid_totp_code', $method);
+            $this->auditService->record($request, 'MFA_FAILED', false, $user, 'invalid_totp_code', $method);
 
             throw ValidationException::withMessages([
                 'code' => 'El codigo de verificacion no es valido.',
@@ -86,7 +86,7 @@ class MfaChallengeController extends Controller
         ])->save();
 
         $this->mfaSessionService->markVerified($request, $user, $method);
-        $this->auditService->record($request, 'MFA_TOTP', true, $user, null, $method);
+        $this->auditService->record($request, 'MFA_SUCCESS', true, $user, null, $method);
 
         return redirect()->to($this->mfaSessionService->intendedUrl($request, $this->redirector->for($user)));
     }
@@ -101,7 +101,7 @@ class MfaChallengeController extends Controller
         }
 
         if (! $this->recoveryCodeService->redeem($method, $request->string('recovery_code')->toString())) {
-            $this->auditService->record($request, 'MFA_RECOVERY_CODE', false, $user, 'invalid_recovery_code', $method);
+            $this->auditService->record($request, 'MFA_FAILED', false, $user, 'invalid_recovery_code', $method);
 
             throw ValidationException::withMessages([
                 'recovery_code' => 'El codigo de recuperacion no es valido o ya fue utilizado.',
@@ -113,7 +113,7 @@ class MfaChallengeController extends Controller
         ])->save();
 
         $this->mfaSessionService->markVerified($request, $user, $method);
-        $this->auditService->record($request, 'MFA_RECOVERY_CODE', true, $user, null, $method);
+        $this->auditService->record($request, 'MFA_SUCCESS', true, $user, null, $method);
 
         return redirect()->to($this->mfaSessionService->intendedUrl($request, $this->redirector->for($user)));
     }

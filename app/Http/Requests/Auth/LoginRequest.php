@@ -49,7 +49,7 @@ class LoginRequest extends FormRequest
 
             app(AuthLoginAuditService::class)->record(
                 $this,
-                'PASSWORD_LOGIN',
+                'LOGIN_FAILED',
                 false,
                 User::query()->where('email', $this->string('email')->toString())->first(),
                 'invalid_credentials',

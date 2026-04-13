@@ -97,6 +97,8 @@ class DidacticPlanWorkflowTest extends TestCase
                     [
                         'entity_type' => 'PLAN',
                         'entity_id' => null,
+                        'field_path' => 'general_objective',
+                        'field_label' => 'Plan > Objetivo general',
                         'severity_code' => 'REQUIRED',
                         'comment_text' => 'Alinea el instrumento de evaluacion con la evidencia.',
                     ],
@@ -113,6 +115,66 @@ class DidacticPlanWorkflowTest extends TestCase
         ]);
         $this->assertDatabaseHas('didactic_plan_review_comments', [
             'comment_text' => 'Alinea el instrumento de evaluacion con la evidencia.',
+            'field_path' => 'general_objective',
+            'observed_value_snapshot' => 'Objetivo general de la planeacion',
+        ]);
+    }
+
+    public function test_docente_can_respond_to_review_comment_with_updated_snapshot(): void
+    {
+        $this->seedCatalogs();
+
+        $teacher = User::factory()->create();
+        $reviewer = User::factory()->create();
+
+        $this->assignRole($teacher, RoleCode::DOCENTE);
+        $this->assignRole($reviewer, RoleCode::REVISOR);
+
+        $assignment = $this->createAssignmentForTeacher($teacher);
+        $plan = $this->createPlan($teacher, $assignment->id);
+
+        $this->actingAs($teacher)
+            ->post(route('plans.submit', $plan, absolute: false))
+            ->assertRedirect();
+
+        $this->actingAs($reviewer)
+            ->post(route('plans.feedback', $plan, absolute: false), [
+                'general_comments' => 'Ajustar el objetivo general.',
+                'review_comments' => [
+                    [
+                        'entity_type' => 'PLAN',
+                        'entity_id' => null,
+                        'field_path' => 'general_objective',
+                        'field_label' => 'Plan > Objetivo general',
+                        'severity_code' => 'REQUIRED',
+                        'comment_text' => 'Define el objetivo con un verbo observable.',
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $plan->refresh();
+
+        $this->actingAs($teacher)
+            ->patch(route('plans.update', $plan, absolute: false), [
+                ...$this->validPayload($assignment->id),
+                'general_objective' => 'Desarrollar un prototipo funcional con evidencia medible.',
+            ])
+            ->assertRedirect();
+
+        $commentId = \App\Models\DidacticPlanReviewComment::query()->value('id');
+
+        $this->actingAs($teacher)
+            ->patch(route('plans.comments.respond', ['didacticPlan' => $plan, 'comment' => $commentId], absolute: false), [
+                'teacher_response' => 'Se reescribio el objetivo general con un verbo observable y un entregable concreto.',
+            ])
+            ->assertRedirect(route('plans.show', $plan, absolute: false));
+
+        $this->assertDatabaseHas('didactic_plan_review_comments', [
+            'id' => $commentId,
+            'comment_status_code' => 'ADDRESSED',
+            'teacher_response' => 'Se reescribio el objetivo general con un verbo observable y un entregable concreto.',
+            'updated_value_snapshot' => 'Desarrollar un prototipo funcional con evidencia medible.',
         ]);
     }
 
@@ -153,6 +215,96 @@ class DidacticPlanWorkflowTest extends TestCase
             'didactic_plan_id' => $plan->id,
             'review_stage_code' => 'FINAL',
         ]);
+    }
+
+    public function test_revisor_can_validate_and_reopen_an_addressed_comment(): void
+    {
+        $this->seedCatalogs();
+
+        $teacher = User::factory()->create();
+        $reviewer = User::factory()->create();
+
+        $this->assignRole($teacher, RoleCode::DOCENTE);
+        $this->assignRole($reviewer, RoleCode::REVISOR);
+
+        $assignment = $this->createAssignmentForTeacher($teacher);
+        $plan = $this->createPlan($teacher, $assignment->id);
+
+        $this->actingAs($teacher)
+            ->post(route('plans.submit', $plan, absolute: false))
+            ->assertRedirect();
+
+        $this->actingAs($reviewer)
+            ->post(route('plans.feedback', $plan, absolute: false), [
+                'general_comments' => 'Ajustar el objetivo general.',
+                'review_comments' => [
+                    [
+                        'entity_type' => 'PLAN',
+                        'entity_id' => null,
+                        'field_path' => 'general_objective',
+                        'field_label' => 'Plan > Objetivo general',
+                        'severity_code' => 'REQUIRED',
+                        'comment_text' => 'Define el objetivo con un verbo observable.',
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $commentId = \App\Models\DidacticPlanReviewComment::query()->value('id');
+
+        $this->actingAs($teacher)
+            ->patch(route('plans.update', $plan, absolute: false), [
+                ...$this->validPayload($assignment->id),
+                'general_objective' => 'Construir un sistema funcional con criterios medibles.',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($teacher)
+            ->patch(route('plans.comments.respond', ['didacticPlan' => $plan, 'comment' => $commentId], absolute: false), [
+                'teacher_response' => 'Se ajusto el objetivo con un verbo observable.',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($reviewer)
+            ->post(route('plans.comments.resolve', ['didacticPlan' => $plan, 'comment' => $commentId], absolute: false))
+            ->assertRedirect(route('plans.review.show', $plan, absolute: false));
+
+        $this->assertDatabaseHas('didactic_plan_review_comments', [
+            'id' => $commentId,
+            'comment_status_code' => 'RESOLVED',
+            'is_resolved' => true,
+            'validated_by_user_id' => $reviewer->id,
+        ]);
+
+        $this->actingAs($reviewer)
+            ->post(route('plans.comments.reopen', ['didacticPlan' => $plan, 'comment' => $commentId], absolute: false))
+            ->assertRedirect(route('plans.review.show', $plan, absolute: false));
+
+        $this->assertDatabaseHas('didactic_plan_review_comments', [
+            'id' => $commentId,
+            'comment_status_code' => 'REOPENED',
+            'is_resolved' => false,
+            'validated_by_user_id' => null,
+        ]);
+    }
+
+    public function test_user_can_export_plan_to_word_document(): void
+    {
+        $this->seedCatalogs();
+
+        $teacher = User::factory()->create();
+        $this->assignRole($teacher, RoleCode::DOCENTE);
+        $assignment = $this->createAssignmentForTeacher($teacher);
+        $plan = $this->createPlan($teacher, $assignment->id);
+
+        $response = $this->actingAs($teacher)
+            ->get(route('plans.export-word', $plan, absolute: false));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/msword; charset=UTF-8');
+        $response->assertHeader('content-disposition');
+        $response->assertSee('Planeacion Didactica', false);
+        $response->assertSee('Objetivo general de la planeacion', false);
     }
 
     protected function seedCatalogs(): void

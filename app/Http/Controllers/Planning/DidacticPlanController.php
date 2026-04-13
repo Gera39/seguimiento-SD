@@ -9,6 +9,7 @@ use App\Models\DidacticPlan;
 use App\Models\EvaluationCriterionType;
 use App\Models\TeacherSubjectAssignment;
 use App\Domain\Planning\Services\DidacticPlanUpsertService;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -72,24 +73,34 @@ class DidacticPlanController extends Controller
 
     public function show(DidacticPlan $didacticPlan): Response
     {
-        $didacticPlan->loadMissing([
-            'status',
-            'assignment.teacher',
-            'assignment.offering.careerSubject.subject',
-            'assignment.offering.group.academicPeriod',
-            'assignment.offering.group.career',
-            'units.modules',
-            'references',
-            'evaluationCriteria.criterionType',
-            'validationSnapshots',
-            'reviews.comments',
-        ]);
+        $this->loadPlanDetailRelations($didacticPlan);
 
         $this->authorize('view', $didacticPlan);
 
         return Inertia::render('VisualizacionSecuencia', [
             'plan' => $this->serializePlanDetail($didacticPlan),
             'status' => session('status'),
+        ]);
+    }
+
+    public function exportWord(DidacticPlan $didacticPlan): HttpResponse
+    {
+        $this->loadPlanDetailRelations($didacticPlan);
+        $this->authorize('view', $didacticPlan);
+
+        $filename = str($didacticPlan->plan_folio ?: 'planeacion')
+            ->slug('_')
+            ->append('.doc')
+            ->toString();
+
+        $html = view('planning.export-word', [
+            'plan' => $didacticPlan,
+            'summary' => $this->serializePlanDetail($didacticPlan),
+        ])->render();
+
+        return response($html, 200, [
+            'Content-Type' => 'application/msword; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -262,9 +273,30 @@ class DidacticPlanController extends Controller
                 'unit_hours' => $latestSnapshot->total_unit_hours,
                 'module_hours' => $latestSnapshot->total_module_hours,
             ] : null,
+            'review_comments' => $plan->reviews
+                ->flatMap(fn ($review) => $review->comments)
+                ->sortByDesc('created_at')
+                ->values()
+                ->map(fn ($comment) => [
+                    'id' => $comment->id,
+                    'field_label' => $comment->field_label ?: $comment->entity_type,
+                    'severity_code' => $comment->severity_code,
+                    'comment_text' => $comment->comment_text,
+                    'observed_value_snapshot' => $comment->observed_value_snapshot,
+                    'teacher_response' => $comment->teacher_response,
+                    'updated_value_snapshot' => $comment->updated_value_snapshot,
+                    'comment_status_code' => $comment->comment_status_code,
+                    'teacher_responded_at' => optional($comment->teacher_responded_at)->format('d/m/Y H:i'),
+                    'validated_at' => optional($comment->validated_at)->format('d/m/Y H:i'),
+                    'respond_url' => auth()->user()?->can('update', $plan)
+                        ? route('plans.comments.respond', ['didacticPlan' => $plan, 'comment' => $comment], absolute: false)
+                        : null,
+                ])
+                ->all(),
             'actions' => [
                 'edit' => auth()->user()?->can('update', $plan) ? route('plans.edit', $plan, absolute: false) : null,
                 'submit' => auth()->user()?->can('submit', $plan) ? route('plans.submit', $plan, absolute: false) : null,
+                'export_word' => auth()->user()?->can('view', $plan) ? route('plans.export-word', $plan, absolute: false) : null,
                 'review' => auth()->user()?->hasRole(\App\Domain\Security\Enums\RoleCode::REVISOR)
                     ? route('plans.review.show', $plan, absolute: false)
                     : null,
@@ -328,5 +360,21 @@ class DidacticPlanController extends Controller
                 'sort_order' => $reference->sort_order,
             ])->all(),
         ];
+    }
+
+    protected function loadPlanDetailRelations(DidacticPlan $didacticPlan): void
+    {
+        $didacticPlan->loadMissing([
+            'status',
+            'assignment.teacher',
+            'assignment.offering.careerSubject.subject',
+            'assignment.offering.group.academicPeriod',
+            'assignment.offering.group.career',
+            'units.modules',
+            'references',
+            'evaluationCriteria.criterionType',
+            'validationSnapshots',
+            'reviews.comments',
+        ]);
     }
 }

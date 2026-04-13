@@ -147,26 +147,122 @@ class PlanningInboxTest extends TestCase
             ->where('plans.1.primaryAction.label', 'Ver cierre'));
     }
 
+    public function test_reviewer_only_sees_plans_from_assigned_careers(): void
+    {
+        $this->seedCatalogs();
+
+        $careerVisible = Career::query()->create([
+            'code' => 'TIC',
+            'name' => 'Tecnologias de la Informacion',
+            'short_name' => 'TIC',
+            'educational_level' => 'TSU',
+            'duration_terms' => 6,
+            'is_active' => true,
+        ]);
+        $careerHidden = Career::query()->create([
+            'code' => 'MEC',
+            'name' => 'Mecatronica',
+            'short_name' => 'MEC',
+            'educational_level' => 'TSU',
+            'duration_terms' => 6,
+            'is_active' => true,
+        ]);
+
+        $reviewer = User::factory()->create([
+            'name' => 'Revisor TIC',
+            'email' => 'revisor.tic@example.com',
+        ]);
+        $teacherVisible = User::factory()->create();
+        $teacherHidden = User::factory()->create();
+
+        $this->assignRole($reviewer, RoleCode::REVISOR, $careerVisible->id);
+        $this->assignRole($teacherVisible, RoleCode::DOCENTE);
+        $this->assignRole($teacherHidden, RoleCode::DOCENTE);
+
+        $visibleAssignment = $this->createAssignmentForTeacher($teacherVisible, $careerVisible);
+        $hiddenAssignment = $this->createAssignmentForTeacher($teacherHidden, $careerHidden);
+
+        $visiblePlan = $this->createPlan($teacherVisible, $visibleAssignment->id);
+        $hiddenPlan = $this->createPlan($teacherHidden, $hiddenAssignment->id);
+
+        $this->actingAs($teacherVisible)
+            ->post(route('plans.submit', $visiblePlan, absolute: false))
+            ->assertRedirect();
+
+        $this->actingAs($teacherHidden)
+            ->post(route('plans.submit', $hiddenPlan, absolute: false))
+            ->assertRedirect();
+
+        $response = $this->actingAs($reviewer)->get(route('demo.validaciones', absolute: false));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('ValidacionSecuencias')
+            ->where('summary.totalVisible', 1)
+            ->has('plans', 1)
+            ->where('plans.0.career', 'Tecnologias de la Informacion'));
+    }
+
+    public function test_reviewer_cannot_access_review_screen_for_plan_outside_scope(): void
+    {
+        $this->seedCatalogs();
+
+        $careerVisible = Career::query()->create([
+            'code' => 'TIC-ACCESS',
+            'name' => 'Tecnologias Acceso',
+            'short_name' => 'TIC',
+            'educational_level' => 'TSU',
+            'duration_terms' => 6,
+            'is_active' => true,
+        ]);
+        $careerHidden = Career::query()->create([
+            'code' => 'MEC-ACCESS',
+            'name' => 'Mecatronica Acceso',
+            'short_name' => 'MEC',
+            'educational_level' => 'TSU',
+            'duration_terms' => 6,
+            'is_active' => true,
+        ]);
+
+        $reviewer = User::factory()->create();
+        $teacher = User::factory()->create();
+
+        $this->assignRole($reviewer, RoleCode::REVISOR, $careerVisible->id);
+        $this->assignRole($teacher, RoleCode::DOCENTE);
+
+        $assignment = $this->createAssignmentForTeacher($teacher, $careerHidden);
+        $plan = $this->createPlan($teacher, $assignment->id);
+
+        $this->actingAs($teacher)
+            ->post(route('plans.submit', $plan, absolute: false))
+            ->assertRedirect();
+
+        $this->actingAs($reviewer)
+            ->get(route('plans.review.show', $plan, absolute: false))
+            ->assertForbidden();
+    }
+
     protected function seedCatalogs(): void
     {
         $this->seed(SecurityCatalogSeeder::class);
         $this->seed(PlanningCatalogSeeder::class);
     }
 
-    protected function assignRole(User $user, RoleCode $roleCode): void
+    protected function assignRole(User $user, RoleCode $roleCode, ?int $careerId = null): void
     {
         $roleId = Role::query()->where('code', $roleCode->value)->value('id');
 
         UserRoleAssignment::query()->create([
             'user_id' => $user->id,
             'role_id' => $roleId,
+            'career_id' => $careerId,
             'is_active' => true,
         ]);
     }
 
-    protected function createAssignmentForTeacher(User $teacher): TeacherSubjectAssignment
+    protected function createAssignmentForTeacher(User $teacher, ?Career $career = null): TeacherSubjectAssignment
     {
-        $career = Career::query()->create([
+        $career ??= Career::query()->create([
             'code' => 'TIC-'.$teacher->id,
             'name' => 'Tecnologias '.$teacher->id,
             'short_name' => 'TIC',

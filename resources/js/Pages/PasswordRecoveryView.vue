@@ -28,9 +28,9 @@
 
       <section class="rounded-[34px] border border-white/80 bg-white/92 p-6 shadow-[0_30px_90px_-35px_rgba(16,185,129,0.35)] backdrop-blur sm:p-8">
         <div class="space-y-6">
-          <a href="/login" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900">
+          <Link href="/login" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900">
             Volver al login
-          </a>
+          </Link>
 
           <div class="space-y-3">
             <p class="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-700">
@@ -98,6 +98,8 @@
 </template>
 
 <script setup lang="ts">
+import { Link } from "@inertiajs/vue3";
+
 const rules = [
   "Minimo 8 caracteres",
   "Al menos una mayuscula",

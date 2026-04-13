@@ -11,9 +11,9 @@
           <div v-if="normalizedLinks.length" class="app-header__links">
             <template v-for="(link, index) in normalizedLinks" :key="`${link.label}-${index}`">
               <span v-if="index > 0">/</span>
-              <a v-if="link.href" :href="link.href" class="app-header__link">
+              <Link v-if="link.href" :href="link.href" class="app-header__link">
                 {{ link.label }}
-              </a>
+              </Link>
               <span v-else>{{ link.label }}</span>
             </template>
           </div>
@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import { Link } from "@inertiajs/vue3";
 import { computed } from "vue";
 import { Separator } from "@/components/ui/separator";
 import SidebarTrigger from "@/components/ui/sidebar/SidebarTrigger.vue";

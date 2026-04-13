@@ -71,7 +71,7 @@ class PlanningInboxController extends Controller
     protected function buildQueuePayload(Request $request, RoleCode $role, string $baseRouteName): array
     {
         $allowedStatuses = $this->allowedStatusesFor($role);
-        $baseQuery = $this->baseQueueQuery();
+        $baseQuery = $this->applyRoleVisibility($this->baseQueueQuery(), $request->user(), $role);
         $queryWithoutStatus = $this->applyFilters(clone $baseQuery, $request, $allowedStatuses, false);
         $queryWithStatus = $this->applyFilters(clone $baseQuery, $request, $allowedStatuses, true);
 
@@ -120,6 +120,24 @@ class PlanningInboxController extends Controller
                 'reviews.reviewer',
             ])
             ->whereHas('status', fn (Builder $query) => $query->where('code', '!=', PlanningStatusCode::DRAFT->value));
+    }
+
+    protected function applyRoleVisibility(Builder $query, ?\App\Models\User $user, RoleCode $role): Builder
+    {
+        if ($user === null || $role !== RoleCode::REVISOR || $user->hasGlobalReviewerScope()) {
+            return $query;
+        }
+
+        $careerIds = $user->reviewerCareerIds()->all();
+
+        if ($careerIds === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereHas(
+            'assignment.offering.group',
+            fn (Builder $groupQuery) => $groupQuery->whereIn('career_id', $careerIds),
+        );
     }
 
     protected function applyFilters(

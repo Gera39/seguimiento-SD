@@ -35,6 +35,13 @@
             <Link v-if="plan.actions.final" :href="plan.actions.final" class="rounded-full border border-emerald-200 px-5 py-3 text-sm font-semibold text-emerald-700">
               Validacion final
             </Link>
+            <a
+              v-if="plan.actions.export_word"
+              :href="plan.actions.export_word"
+              class="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700"
+            >
+              Exportar Word
+            </a>
           </div>
 
           <p v-if="status" class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -113,6 +120,71 @@
           </div>
         </article>
 
+        <article v-if="plan.review_comments.length" class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-2xl font-semibold text-slate-900">Seguimiento de observaciones</h2>
+          <div class="mt-5 space-y-4">
+            <div v-for="comment in plan.review_comments" :key="comment.id" class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="text-sm font-semibold text-slate-900">{{ comment.field_label }}</p>
+                <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="commentStatusClass(comment.comment_status_code)">
+                  {{ commentStatusLabel(comment.comment_status_code) }}
+                </span>
+              </div>
+
+              <p class="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ comment.severity_code }}</p>
+              <p class="mt-2 text-sm leading-6 text-slate-700">{{ comment.comment_text }}</p>
+
+              <div class="mt-4 space-y-3">
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Antes</p>
+                  <p class="mt-2 text-sm leading-6 text-amber-900">{{ comment.observed_value_snapshot || "Sin captura" }}</p>
+                </div>
+
+                <div v-if="comment.updated_value_snapshot" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Despues</p>
+                  <p class="mt-2 text-sm leading-6 text-emerald-900">{{ comment.updated_value_snapshot }}</p>
+                </div>
+              </div>
+
+              <div v-if="comment.teacher_response" class="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Respuesta del docente</p>
+                <p class="mt-2 text-sm leading-6 text-sky-900">{{ comment.teacher_response }}</p>
+                <p v-if="comment.teacher_responded_at" class="mt-2 text-xs text-sky-700">
+                  Respondido el {{ comment.teacher_responded_at }}
+                </p>
+              </div>
+
+              <p v-if="comment.validated_at && comment.comment_status_code === 'RESOLVED'" class="mt-3 text-xs text-emerald-700">
+                Validado por revisor el {{ comment.validated_at }}
+              </p>
+
+              <form
+                v-if="comment.respond_url && plan.status.editable"
+                class="mt-4 space-y-3"
+                @submit.prevent="submitCommentResponse(comment)"
+              >
+                <label class="block space-y-2">
+                  <span class="text-sm font-medium text-slate-700">Que cambio realizaste</span>
+                  <textarea
+                    v-model="commentResponses[comment.id]"
+                    rows="3"
+                    class="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-3"
+                    placeholder="Describe como atendiste esta observacion"
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  class="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
+                  :disabled="commentForm.processing || !commentResponses[comment.id]?.trim()"
+                >
+                  {{ commentForm.processing ? "Guardando..." : "Marcar observacion como atendida" }}
+                </button>
+              </form>
+            </div>
+          </div>
+        </article>
+
         <article v-if="plan.latest_validation" class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 class="text-2xl font-semibold text-slate-900">Ultima validacion</h2>
           <div class="mt-5 space-y-3">
@@ -150,6 +222,20 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 import Header from "@/components/Header.vue";
 
 defineOptions({ layout: AppLayout });
+
+type ReviewComment = {
+  id: number;
+  field_label: string;
+  severity_code: string;
+  comment_text: string;
+  observed_value_snapshot: string | null;
+  teacher_response: string | null;
+  updated_value_snapshot: string | null;
+  comment_status_code: string;
+  teacher_responded_at: string | null;
+  validated_at: string | null;
+  respond_url: string | null;
+};
 
 const props = defineProps<{
   plan: {
@@ -191,9 +277,11 @@ const props = defineProps<{
       unit_hours: number;
       module_hours: number;
     };
+    review_comments: ReviewComment[];
     actions: {
       edit: string | null;
       submit: string | null;
+      export_word: string | null;
       review: string | null;
       final: string | null;
     };
@@ -207,11 +295,29 @@ const tituloPagina = {
 };
 
 const submitForm = useForm({});
+const commentForm = useForm({
+  teacher_response: "",
+});
+const commentResponses = Object.fromEntries(
+  props.plan.review_comments.map((comment) => [comment.id, comment.teacher_response ?? ""]),
+) as Record<number, string>;
 
 const submitPlan = () => {
   if (props.plan.actions.submit) {
     submitForm.post(props.plan.actions.submit);
   }
+};
+
+const submitCommentResponse = (comment: ReviewComment) => {
+  if (!comment.respond_url) {
+    return;
+  }
+
+  commentForm.teacher_response = commentResponses[comment.id] ?? "";
+
+  commentForm.patch(comment.respond_url, {
+    preserveScroll: true,
+  });
 };
 
 const statusClass = (code: string) => {
@@ -220,5 +326,19 @@ const statusClass = (code: string) => {
   if (code === "FEEDBACK") return "bg-sky-100 text-sky-700";
   if (code === "REJECTED") return "bg-rose-100 text-rose-700";
   return "bg-slate-100 text-slate-700";
+};
+
+const commentStatusLabel = (code: string) => {
+  if (code === "ADDRESSED") return "Atendido";
+  if (code === "RESOLVED") return "Validado";
+  if (code === "REOPENED") return "Reabierto";
+  return "Abierto";
+};
+
+const commentStatusClass = (code: string) => {
+  if (code === "ADDRESSED") return "bg-sky-100 text-sky-700";
+  if (code === "RESOLVED") return "bg-emerald-100 text-emerald-700";
+  if (code === "REOPENED") return "bg-rose-100 text-rose-700";
+  return "bg-amber-100 text-amber-700";
 };
 </script>

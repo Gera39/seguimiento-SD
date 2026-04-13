@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Planning\DidacticPlanReviewCommentController;
 use App\Http\Controllers\Planning\DidacticPlanController;
 use App\Http\Controllers\Planning\PlanningInboxController;
 use App\Http\Controllers\Planning\DidacticPlanTransitionController;
@@ -21,8 +23,10 @@ Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
         return Inertia::render('DashboardView');
     })->name('dashboard');
 
-    Route::get('/visualizacion-secuencia/{didacticPlan}', [DidacticPlanController::class, 'show'])
-        ->name('plans.show');
+        Route::get('/visualizacion-secuencia/{didacticPlan}', [DidacticPlanController::class, 'show'])
+            ->name('plans.show');
+        Route::get('/visualizacion-secuencia/{didacticPlan}/export-word', [DidacticPlanController::class, 'exportWord'])
+            ->name('plans.export-word');
 
     Route::middleware('role:DOCENTE')->group(function () {
         Route::get('/panel-docente', function () {
@@ -38,6 +42,9 @@ Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
         Route::match(['put', 'patch'], '/planeaciones/{didacticPlan}', [DidacticPlanController::class, 'update'])
             ->middleware('plan.editable')
             ->name('plans.update');
+        Route::patch('/planeaciones/{didacticPlan}/comentarios/{comment}/respuesta', [DidacticPlanReviewCommentController::class, 'respond'])
+            ->middleware('plan.editable')
+            ->name('plans.comments.respond');
         Route::delete('/planeaciones/{didacticPlan}', [DidacticPlanController::class, 'destroy'])
             ->middleware('plan.editable')
             ->name('plans.destroy');
@@ -59,6 +66,10 @@ Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
             ->name('plans.start-review');
         Route::post('/planeaciones/{didacticPlan}/feedback', [DidacticPlanTransitionController::class, 'feedback'])
             ->name('plans.feedback');
+        Route::post('/planeaciones/{didacticPlan}/comentarios/{comment}/resolve', [DidacticPlanReviewCommentController::class, 'resolve'])
+            ->name('plans.comments.resolve');
+        Route::post('/planeaciones/{didacticPlan}/comentarios/{comment}/reopen', [DidacticPlanReviewCommentController::class, 'reopen'])
+            ->name('plans.comments.reopen');
     });
 
     Route::middleware('role:DIRECTIVO')->group(function () {
@@ -81,9 +92,9 @@ Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
     });
 
     Route::middleware('role:ADMIN,DIRECTIVO')->group(function () {
-        Route::get('/docentes', function () {
-            return Inertia::render('DocentesView');
-        })->name('demo.docentes');
+        Route::get('/docentes', [UserManagementController::class, 'index'])->name('demo.docentes');
+        Route::post('/docentes', [UserManagementController::class, 'store'])->name('demo.docentes.store');
+        Route::patch('/docentes/{user}/roles', [UserManagementController::class, 'updateRoles'])->name('demo.docentes.roles.update');
 
         Route::get('/importar-datos', function () {
             return Inertia::render('ImportarDatosView');
