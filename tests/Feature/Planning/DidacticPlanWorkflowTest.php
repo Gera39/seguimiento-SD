@@ -301,10 +301,9 @@ class DidacticPlanWorkflowTest extends TestCase
             ->get(route('plans.export-word', $plan, absolute: false));
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'application/msword; charset=UTF-8');
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
         $response->assertHeader('content-disposition');
-        $response->assertSee('Planeacion Didactica', false);
-        $response->assertSee('Objetivo general de la planeacion', false);
+        $this->assertStringContainsString('.docx', $response->headers->get('content-disposition', ''));
     }
 
     protected function seedCatalogs(): void

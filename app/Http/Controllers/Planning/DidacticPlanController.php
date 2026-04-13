@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Planning;
 
+use App\Domain\Planning\Services\DidacticPlanWordExportService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Planning\StoreDidacticPlanRequest;
 use App\Http\Requests\Planning\UpdateDidacticPlanRequest;
@@ -9,9 +10,9 @@ use App\Models\DidacticPlan;
 use App\Models\EvaluationCriterionType;
 use App\Models\TeacherSubjectAssignment;
 use App\Domain\Planning\Services\DidacticPlanUpsertService;
-use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,6 +20,7 @@ class DidacticPlanController extends Controller
 {
     public function __construct(
         protected DidacticPlanUpsertService $upsertService,
+        protected DidacticPlanWordExportService $wordExportService,
     ) {
     }
 
@@ -83,25 +85,26 @@ class DidacticPlanController extends Controller
         ]);
     }
 
-    public function exportWord(DidacticPlan $didacticPlan): HttpResponse
+    public function exportWord(DidacticPlan $didacticPlan): BinaryFileResponse
     {
         $this->loadPlanDetailRelations($didacticPlan);
         $this->authorize('view', $didacticPlan);
 
         $filename = str($didacticPlan->plan_folio ?: 'planeacion')
             ->slug('_')
-            ->append('.doc')
+            ->append('.docx')
             ->toString();
 
-        $html = view('planning.export-word', [
-            'plan' => $didacticPlan,
-            'summary' => $this->serializePlanDetail($didacticPlan),
-        ])->render();
+        $summary = $this->serializePlanDetail($didacticPlan);
+        $documentPath = $this->wordExportService->export($didacticPlan, $summary);
 
-        return response($html, 200, [
-            'Content-Type' => 'application/msword; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-        ]);
+        return response()
+            ->download(
+                $documentPath,
+                $filename,
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+            )
+            ->deleteFileAfterSend(true);
     }
 
     public function edit(DidacticPlan $didacticPlan): Response
