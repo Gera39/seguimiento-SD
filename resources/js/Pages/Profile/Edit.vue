@@ -56,16 +56,27 @@
 
         <div v-if="!mfa.enabled && !mfa.pending" class="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
           <p class="text-lg font-semibold text-slate-900">MFA no esta activo</p>
-          <p class="mt-2 text-sm leading-6 text-slate-600">Genera una clave TOTP para vincular tu cuenta con Google Authenticator, Microsoft Authenticator o una app compatible.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-600">Activa OTP por correo para empezar rapido o configura TOTP con una app autenticadora para una capa mas fuerte.</p>
 
-          <button
-            type="button"
-            class="mt-5 rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white"
-            :disabled="enableMfaForm.processing"
-            @click="enableMfa"
-          >
-            {{ enableMfaForm.processing ? "Preparando..." : "Activar MFA" }}
-          </button>
+          <div class="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              class="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
+              :disabled="emailOtpForm.processing"
+              @click="enableEmailOtp"
+            >
+              {{ emailOtpForm.processing ? "Activando..." : "Activar OTP por correo" }}
+            </button>
+
+            <button
+              type="button"
+              class="rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white"
+              :disabled="enableMfaForm.processing"
+              @click="enableMfa"
+            >
+              {{ enableMfaForm.processing ? "Preparando..." : "Configurar autenticador" }}
+            </button>
+          </div>
         </div>
 
         <div v-if="mfa.pending" class="rounded-[28px] border border-teal-200 bg-teal-50 p-5">
@@ -116,7 +127,10 @@
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p class="text-lg font-semibold text-slate-900">MFA activo</p>
-              <p class="mt-2 text-sm leading-6 text-slate-600">Metodo principal: {{ mfa.method.label }}</p>
+              <p class="mt-2 text-sm leading-6 text-slate-600">
+                Metodo principal: {{ mfa.method.label }}
+                <span v-if="mfa.method.destination_masked">· {{ mfa.method.destination_masked }}</span>
+              </p>
             </div>
             <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
               {{ mfa.method.recovery_codes_remaining }} codigos disponibles
@@ -130,9 +144,29 @@
             </div>
 
             <div class="rounded-2xl border border-emerald-200 bg-white px-4 py-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Metodo</p>
+              <p class="mt-2 text-sm text-slate-600">{{ mfa.method.type === "EMAIL_OTP" ? "OTP por correo" : "Aplicacion autenticadora" }}</p>
+            </div>
+
+            <div class="rounded-2xl border border-emerald-200 bg-white px-4 py-4">
               <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Ultimo uso</p>
               <p class="mt-2 text-sm text-slate-600">{{ mfa.method.last_used_at || "Aun no registrado" }}</p>
             </div>
+          </div>
+
+          <div v-if="mfa.method.type === 'EMAIL_OTP'" class="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+            <p class="text-sm font-semibold text-sky-900">Sugerencia de endurecimiento</p>
+            <p class="mt-2 text-sm leading-6 text-sky-800">
+              Ya tienes OTP por correo. Si quieres una capa mas fuerte, configura el autenticador y reemplaza este metodo.
+            </p>
+            <button
+              type="button"
+              class="mt-4 rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white"
+              :disabled="enableMfaForm.processing"
+              @click="enableMfa"
+            >
+              {{ enableMfaForm.processing ? "Preparando..." : "Cambiar a autenticador" }}
+            </button>
           </div>
 
           <form class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4" @submit.prevent="regenerateCodes">
@@ -191,7 +225,9 @@ const props = defineProps<{
     enabled: boolean;
     method: null | {
       id: number;
+      type: string;
       label: string;
+      destination_masked?: string | null;
       confirmed_at: string | null;
       last_used_at: string | null;
       recovery_codes_remaining: number;
@@ -223,6 +259,7 @@ const deleteForm = useForm({
 });
 
 const enableMfaForm = useForm({});
+const emailOtpForm = useForm({});
 
 const confirmMfaForm = useForm({
   code: "",
@@ -242,6 +279,10 @@ const updateProfile = () => {
 
 const enableMfa = () => {
   enableMfaForm.post("/profile/mfa");
+};
+
+const enableEmailOtp = () => {
+  emailOtpForm.post("/profile/mfa/email");
 };
 
 const confirmMfa = () => {

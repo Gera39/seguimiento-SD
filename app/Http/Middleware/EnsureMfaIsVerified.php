@@ -32,6 +32,10 @@ class EnsureMfaIsVerified
             return $next($request);
         }
 
+        if ($this->mfaSessionService->verifiedSessionExpired($request)) {
+            $this->mfaSessionService->clear($request);
+        }
+
         if ($this->mfaSessionService->isVerified($request)) {
             return $next($request);
         }

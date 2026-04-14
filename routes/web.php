@@ -23,8 +23,7 @@ Route::get('/recuperar-contrasena', function () {
 Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
     Route::get('/dashboard', function (Request $request, PostLoginRedirector $redirector) {
         return redirect()->to($redirector->for($request->user()));
-    })->name('dashboard');
-
+    })->name('dashboard');  
         Route::get('/visualizacion-secuencia/{didacticPlan}', [DidacticPlanController::class, 'show'])
             ->name('plans.show');
         Route::get('/visualizacion-secuencia/{didacticPlan}/export-word', [DidacticPlanController::class, 'exportWord'])
@@ -117,6 +116,7 @@ Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/profile/mfa', [ProfileMfaController::class, 'store'])->name('profile.mfa.store');
+    Route::post('/profile/mfa/email', [ProfileMfaController::class, 'storeEmailOtp'])->name('profile.mfa.email.store');
     Route::post('/profile/mfa/confirm', [ProfileMfaController::class, 'confirm'])->name('profile.mfa.confirm');
     Route::delete('/profile/mfa', [ProfileMfaController::class, 'destroy'])->name('profile.mfa.destroy');
     Route::delete('/profile/mfa/pending', [ProfileMfaController::class, 'cancel'])->name('profile.mfa.cancel');

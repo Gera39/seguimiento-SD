@@ -48,6 +48,10 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         ->middleware('throttle:6,1')
         ->name('mfa.challenge.recovery');
 
+    Route::post('mfa/challenge/resend', [MfaChallengeController::class, 'resend'])
+        ->middleware('throttle:3,1')
+        ->name('mfa.challenge.resend');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

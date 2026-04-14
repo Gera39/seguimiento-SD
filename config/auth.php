@@ -114,4 +114,11 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    'mfa' => [
+        'challenge_timeout_seconds' => env('AUTH_MFA_CHALLENGE_TIMEOUT', 900),
+        'verified_timeout_seconds' => env('AUTH_MFA_VERIFIED_TIMEOUT', 14400),
+        'email_otp_expire_seconds' => env('AUTH_MFA_EMAIL_OTP_EXPIRE', 600),
+        'email_otp_resend_cooldown_seconds' => env('AUTH_MFA_EMAIL_OTP_RESEND_COOLDOWN', 60),
+    ],
+
 ];

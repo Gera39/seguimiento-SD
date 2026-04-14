@@ -26,13 +26,30 @@ class ProfileMfaController extends Controller
             return Redirect::route('login');
         }
 
-        if ($this->mfaManager->primaryMethodFor($user) !== null) {
+        $activeMethod = $this->mfaManager->primaryMethodFor($user);
+
+        if ($activeMethod !== null && $activeMethod->method_type === 'TOTP') {
             return Redirect::route('profile.edit')->with('status', 'La autenticacion multifactor ya esta activa.');
         }
 
         $this->mfaManager->createPendingTotp($user);
 
-        return Redirect::route('profile.edit')->with('status', 'Escanea o registra la clave secreta y confirma un codigo para activar MFA.');
+        return Redirect::route('profile.edit')->with('status', 'Escanea o registra la clave secreta y confirma un codigo para activar MFA con autenticador.');
+    }
+
+    public function storeEmailOtp(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return Redirect::route('login');
+        }
+
+        [$method, $recoveryCodes] = $this->mfaManager->enableEmailOtp($user);
+
+        return Redirect::route('profile.edit')
+            ->with('status', "OTP por correo activado. Los codigos llegaran a {$method->destination_masked}.")
+            ->with('mfa_recovery_codes', $recoveryCodes);
     }
 
     public function confirm(ConfirmMfaSetupRequest $request): RedirectResponse

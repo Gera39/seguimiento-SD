@@ -5,12 +5,13 @@
         <p class="text-sm font-semibold uppercase tracking-[0.22em] text-teal-700">Autenticacion multifactor</p>
         <h1 class="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Confirma tu acceso</h1>
         <p class="mt-4 text-sm leading-7 text-slate-600">
-          Tu cuenta tiene MFA activo. Ingresa el codigo de 6 digitos de tu aplicacion autenticadora o utiliza un codigo de recuperacion.
+          Tu cuenta tiene MFA activo. Completa el reto con tu autenticador o con el OTP enviado por correo, segun el metodo principal activo.
         </p>
 
         <div class="mt-6 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Metodo principal</p>
           <p class="mt-2 text-lg font-semibold text-slate-900">{{ challenge.label }}</p>
+          <p v-if="challenge.destination_masked" class="mt-2 text-sm text-slate-500">Destino: {{ challenge.destination_masked }}</p>
           <p class="mt-2 text-sm text-slate-500">Codigos de recuperacion disponibles: {{ challenge.recovery_codes_remaining }}</p>
         </div>
 
@@ -22,8 +23,15 @@
       <section class="space-y-6">
         <article class="rounded-[36px] border border-slate-200 bg-white p-6 shadow-sm">
           <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Codigo TOTP</p>
-            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Aplicacion autenticadora</h2>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">
+              {{ challenge.type === "EMAIL_OTP" ? "Codigo OTP" : "Codigo TOTP" }}
+            </p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-900">
+              {{ challenge.type === "EMAIL_OTP" ? "Verificacion por correo" : "Aplicacion autenticadora" }}
+            </h2>
+            <p v-if="challenge.type === 'EMAIL_OTP'" class="mt-2 text-sm leading-6 text-slate-600">
+              Ingresa el codigo de 6 digitos enviado a {{ challenge.destination_masked }}.
+            </p>
           </div>
 
           <form class="mt-6 space-y-4" @submit.prevent="submitTotp">
@@ -41,12 +49,23 @@
             </label>
 
             <button
+              v-if="challenge.type === 'EMAIL_OTP'"
+              type="button"
+              :disabled="resendForm.processing"
+              class="h-12 w-full rounded-2xl border border-slate-300 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              :class="{ 'cursor-not-allowed opacity-70': resendForm.processing }"
+              @click="resendOtp"
+            >
+              {{ resendForm.processing ? "Reenviando..." : "Reenviar OTP" }}
+            </button>
+
+            <button
               type="submit"
               :disabled="totpForm.processing"
               class="h-12 w-full rounded-2xl bg-teal-600 text-sm font-semibold text-white transition hover:bg-teal-700"
               :class="{ 'cursor-not-allowed opacity-70': totpForm.processing }"
             >
-              {{ totpForm.processing ? "Verificando..." : "Validar codigo" }}
+              {{ totpForm.processing ? "Verificando..." : challenge.type === "EMAIL_OTP" ? "Validar OTP" : "Validar codigo" }}
             </button>
           </form>
         </article>
@@ -98,7 +117,10 @@ const props = defineProps<{
   challenge: {
     label: string;
     type: string;
+    destination_masked?: string | null;
     recovery_codes_remaining: number;
+    expires_at?: string | null;
+    resend_available_at?: string | null;
   };
   status?: string | null;
 }>();
@@ -111,6 +133,8 @@ const recoveryForm = useForm({
   recovery_code: "",
 });
 
+const resendForm = useForm({});
+
 const submitTotp = () => {
   totpForm.post("/mfa/challenge", {
     onFinish: () => totpForm.reset("code"),
@@ -121,5 +145,9 @@ const submitRecoveryCode = () => {
   recoveryForm.post("/mfa/challenge/recovery-code", {
     onFinish: () => recoveryForm.reset("recovery_code"),
   });
+};
+
+const resendOtp = () => {
+  resendForm.post("/mfa/challenge/resend");
 };
 </script>

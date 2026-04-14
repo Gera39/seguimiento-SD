@@ -49,6 +49,38 @@ class UserMfaManager
         ]);
     }
 
+    public function enableEmailOtp(User $user, string $label = 'OTP por correo'): array
+    {
+        $user->mfaMethods()
+            ->whereNull('confirmed_at')
+            ->delete();
+
+        $method = $user->mfaMethods()
+            ->firstOrNew([
+                'method_type' => 'EMAIL_OTP',
+            ]);
+
+        $user->mfaMethods()
+            ->where('id', '!=', $method->id)
+            ->update([
+                'is_primary' => false,
+                'is_active' => false,
+            ]);
+
+        $method->fill([
+            'label' => $label,
+            'secret_encrypted' => null,
+            'destination_masked' => $this->maskEmail($user->email),
+            'is_primary' => true,
+            'confirmed_at' => now(),
+            'is_active' => true,
+        ])->save();
+
+        $recoveryCodes = $this->recoveryCodeService->regenerateFor($method);
+
+        return [$method->fresh('recoveryCodes'), $recoveryCodes];
+    }
+
     public function confirmPendingTotp(User $user, string $code): array
     {
         $pendingMethod = $this->pendingMethodFor($user);
@@ -106,7 +138,9 @@ class UserMfaManager
             'enabled' => $primaryMethod !== null,
             'method' => $primaryMethod ? [
                 'id' => $primaryMethod->id,
+                'type' => $primaryMethod->method_type,
                 'label' => $primaryMethod->label,
+                'destination_masked' => $primaryMethod->destination_masked,
                 'confirmed_at' => optional($primaryMethod->confirmed_at)->format('d/m/Y H:i'),
                 'last_used_at' => optional($primaryMethod->last_used_at)->format('d/m/Y H:i'),
                 'recovery_codes_remaining' => $primaryMethod->recoveryCodes()->whereNull('used_at')->count(),
@@ -119,5 +153,19 @@ class UserMfaManager
                 'otpauth_uri' => $this->totpService->provisioningUri($user, $secret),
             ] : null,
         ];
+    }
+
+    protected function maskEmail(string $email): string
+    {
+        [$localPart, $domain] = array_pad(explode('@', $email, 2), 2, '');
+
+        if ($domain === '') {
+            return $email;
+        }
+
+        $visible = substr($localPart, 0, min(2, strlen($localPart)));
+        $masked = str_repeat('*', max(2, strlen($localPart) - strlen($visible)));
+
+        return "{$visible}{$masked}@{$domain}";
     }
 }

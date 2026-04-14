@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Domain\Security\Authentication\AuthLoginAuditService;
+use App\Domain\Security\Mfa\EmailOtpService;
 use App\Domain\Security\Authentication\PostLoginRedirector;
 use App\Domain\Security\Mfa\MfaSessionService;
 use App\Domain\Security\Mfa\UserMfaManager;
@@ -21,6 +22,7 @@ class AuthenticatedSessionController extends Controller
         protected PostLoginRedirector $redirector,
         protected UserMfaManager $mfaManager,
         protected MfaSessionService $mfaSessionService,
+        protected EmailOtpService $emailOtpService,
         protected AuthLoginAuditService $auditService,
     ) {
     }
@@ -55,6 +57,11 @@ class AuthenticatedSessionController extends Controller
 
             if ($mfaMethod !== null) {
                 $this->mfaSessionService->beginChallenge($request, $mfaMethod, $fallbackUrl);
+
+                if ($mfaMethod->method_type === 'EMAIL_OTP') {
+                    $this->emailOtpService->issueChallenge($request, $user, $mfaMethod, true);
+                    $this->auditService->record($request, 'MFA_OTP_SENT', true, $user, null, $mfaMethod);
+                }
 
                 return redirect()->route('mfa.challenge.show');
             }
