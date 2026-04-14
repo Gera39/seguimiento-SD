@@ -7,8 +7,10 @@ use App\Http\Controllers\Planning\PlanningInboxController;
 use App\Http\Controllers\Planning\DidacticPlanTransitionController;
 use App\Http\Controllers\ProfileMfaController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Domain\Security\Authentication\PostLoginRedirector;
 
 Route::get('/', function () {
     return Inertia::render('Login');
@@ -19,8 +21,8 @@ Route::get('/recuperar-contrasena', function () {
 })->name('password.recovery');
 
 Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('DashboardView');
+    Route::get('/dashboard', function (Request $request, PostLoginRedirector $redirector) {
+        return redirect()->to($redirector->for($request->user()));
     })->name('dashboard');
 
         Route::get('/visualizacion-secuencia/{didacticPlan}', [DidacticPlanController::class, 'show'])
@@ -30,7 +32,7 @@ Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
 
     Route::middleware('role:DOCENTE')->group(function () {
         Route::get('/panel-docente', function () {
-            return Inertia::render('PanelDocente');
+            return redirect()->route('demo.secuencias');
         })->name('panel.docente');
 
         Route::get('/mis-secuencias', [DidacticPlanController::class, 'index'])->name('demo.secuencias');
@@ -76,7 +78,9 @@ Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
         Route::get('/panel-director', [PlanningInboxController::class, 'directorDashboard'])
             ->name('panel.director');
 
-        Route::get('/panel-coordinacion', [PlanningInboxController::class, 'directorDashboard'])
+        Route::get('/panel-coordinacion', function () {
+            return redirect()->route('panel.director');
+        })
             ->name('panel.coordinacion');
 
         Route::get('/validacion-final/{didacticPlan}', [DidacticPlanTransitionController::class, 'showFinalValidation'])

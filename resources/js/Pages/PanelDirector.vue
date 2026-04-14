@@ -235,8 +235,8 @@ const props = defineProps<{
 }>();
 
 const tituloPagina = {
-  text: "Panel del director",
-  links: ["Paneles", "Direccion academica"],
+  text: "Validacion final",
+  links: ["Planeaciones", "Direccion academica"],
 };
 
 const localFilters = reactive({

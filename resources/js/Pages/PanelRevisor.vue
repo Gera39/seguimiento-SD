@@ -171,8 +171,8 @@ defineProps<{
 }>();
 
 const tituloPagina = {
-  text: "Panel del revisor",
-  links: ["Paneles", "Revisor academico"],
+  text: "Revision academica",
+  links: ["Planeaciones", "Revision"],
 };
 
 const statusClass = (statusCode: string) => {

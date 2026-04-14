@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Security\Enums\RoleCode;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,6 +39,12 @@ class HandleInertiaRequests extends Middleware
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'roles' => [
+                        'isAdmin' => $user->hasRole(RoleCode::ADMIN),
+                        'isDirectivo' => $user->hasRole(RoleCode::DIRECTIVO),
+                        'isDocente' => $user->hasRole(RoleCode::DOCENTE),
+                        'isRevisor' => $user->hasRole(RoleCode::REVISOR),
+                    ],
                 ],
             ],
         ];
