@@ -27,7 +27,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('profile.edit', absolute: false));
         $this->assertDatabaseHas('auth_login_audits', [
             'user_id' => $user->id,
             'event_type' => 'LOGIN_SUCCESS',
@@ -50,6 +50,27 @@ class AuthenticationTest extends TestCase
             'event_type' => 'LOGIN_FAILED',
             'is_success' => false,
             'failure_reason' => 'invalid_credentials',
+        ]);
+    }
+
+    public function test_inactive_users_can_not_authenticate(): void
+    {
+        $user = User::factory()->create([
+            'is_active' => false,
+        ]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertDatabaseHas('auth_login_audits', [
+            'user_id' => $user->id,
+            'event_type' => 'LOGIN_FAILED',
+            'is_success' => false,
+            'failure_reason' => 'inactive_user',
         ]);
     }
 

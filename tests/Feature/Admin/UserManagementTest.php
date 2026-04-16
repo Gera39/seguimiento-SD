@@ -163,6 +163,35 @@ class UserManagementTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_deactivate_and_reactivate_a_user(): void
+    {
+        $this->seed(SecurityCatalogSeeder::class);
+
+        $admin = User::factory()->create();
+        $managedUser = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $this->assignRole($admin, RoleCode::ADMIN);
+        $this->assignRole($managedUser, RoleCode::DOCENTE);
+
+        $this->actingAs($admin)
+            ->patch(route('demo.docentes.status.update', $managedUser, absolute: false), [
+                'is_active' => false,
+            ])
+            ->assertRedirect(route('demo.docentes', absolute: false));
+
+        $this->assertFalse($managedUser->refresh()->is_active);
+
+        $this->actingAs($admin)
+            ->patch(route('demo.docentes.status.update', $managedUser, absolute: false), [
+                'is_active' => true,
+            ])
+            ->assertRedirect(route('demo.docentes', absolute: false));
+
+        $this->assertTrue($managedUser->refresh()->is_active);
+    }
+
     protected function assignRole(User $user, RoleCode $roleCode): void
     {
         $roleId = Role::query()->where('code', $roleCode->value)->value('id');

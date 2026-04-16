@@ -1,5 +1,9 @@
 <template>
   <div class="space-y-5">
+    <div v-if="status" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+      {{ status }}
+    </div>
+
     <form class="space-y-4" @submit.prevent="submit">
       <div class="space-y-2">
         <label class="text-sm font-medium text-slate-700">Correo institucional</label>
@@ -30,13 +34,22 @@
       </div>
 
       <div class="flex items-center justify-between gap-3 text-sm">
-        <span class="text-slate-500">Si no recuerdas tu acceso, recuperalo aqui.</span>
-        <a
-          href="/recuperar-contrasena"
+        <label class="inline-flex items-center gap-2 text-slate-600">
+          <input v-model="form.remember" type="checkbox" class="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+          Mantener sesion
+        </label>
+
+        <Link
+          v-if="canResetPassword"
+          :href="route('password.request')"
           class="font-semibold text-teal-700 transition hover:text-teal-800 hover:underline"
         >
           Olvide mi contrasena
-        </a>
+        </Link>
+      </div>
+
+      <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900">
+        La verificacion en dos pasos es opcional. Si la tienes activa, despues del login te pediremos tu codigo TOTP, OTP por correo o uno de tus codigos de recuperacion.
       </div>
 
       <button
@@ -53,7 +66,12 @@
 </template>
 
 <script setup lang="ts">
-import { useForm } from "@inertiajs/vue3";
+import { Link, useForm } from "@inertiajs/vue3";
+
+defineProps<{
+  canResetPassword: boolean;
+  status?: string | null;
+}>();
 
 const form = useForm({
   email: "",

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Admin\UserManagementService;
 use App\Domain\Security\Enums\RoleCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreManagedUserRequest;
 use App\Http\Requests\Admin\UpdateManagedUserRolesRequest;
+use App\Http\Requests\Admin\UpdateManagedUserStatusRequest;
 use App\Models\Career;
 use App\Models\Role;
 use App\Models\User;
@@ -19,9 +21,14 @@ use Inertia\Response;
 
 class UserManagementController extends Controller
 {
+    public function __construct(
+        protected UserManagementService $userManagementService,
+    ) {
+    }
+
     public function index(Request $request): Response
     {
-        $availableRoles = $this->availableRolesFor($request->user());
+        $availableRoles = $this->userManagementService->availableRolesFor($request->user());
 
         $users = User::query()
             ->with([
@@ -65,6 +72,7 @@ class UserManagementController extends Controller
                             : $reviewerCareers->pluck('name')->implode(', '))
                         : null,
                     'created_at' => optional($user->created_at)->format('d/m/Y'),
+                    'update_status_url' => route('demo.docentes.status.update', $user, absolute: false),
                     'update_roles_url' => route('demo.docentes.roles.update', $user, absolute: false),
                 ];
             })
@@ -115,7 +123,7 @@ class UserManagementController extends Controller
 
     public function store(StoreManagedUserRequest $request): RedirectResponse
     {
-        $availableRoleCodes = $this->availableRolesFor($request->user())->pluck('code')->all();
+        $availableRoleCodes = $this->userManagementService->availableRolesFor($request->user())->pluck('code')->all();
         $validated = $request->validated();
         $selectedRoleCodes = collect($validated['roles'])
             ->intersect($availableRoleCodes)
@@ -133,7 +141,7 @@ class UserManagementController extends Controller
                 'email_verified_at' => now(),
             ]);
 
-            $this->syncRoleAssignments($user, $selectedRoleCodes->all(), $reviewerCareerIds->all(), $request->user()?->id);
+            $this->userManagementService->syncRoleAssignments($user, $selectedRoleCodes->all(), $reviewerCareerIds->all(), $request->user()?->id);
         });
 
         return redirect()
@@ -143,7 +151,7 @@ class UserManagementController extends Controller
 
     public function updateRoles(UpdateManagedUserRolesRequest $request, User $user): RedirectResponse
     {
-        $availableRoles = $this->availableRolesFor($request->user());
+        $availableRoles = $this->userManagementService->availableRolesFor($request->user());
         $availableRoleCodes = $availableRoles->pluck('code')->all();
         $validated = $request->validated();
         $selectedRoleCodes = collect($validated['roles'])
@@ -152,17 +160,8 @@ class UserManagementController extends Controller
         $reviewerCareerIds = collect($validated['reviewer_career_ids'] ?? [])->values();
 
         DB::transaction(function () use ($request, $user, $selectedRoleCodes, $reviewerCareerIds, $availableRoles): void {
-            $allowedRoleIds = $availableRoles->pluck('id');
-
-            UserRoleAssignment::query()
-                ->where('user_id', $user->id)
-                ->whereIn('role_id', $allowedRoleIds)
-                ->update([
-                    'is_active' => false,
-                    'updated_at' => now(),
-                ]);
-
-            $this->syncRoleAssignments($user, $selectedRoleCodes->all(), $reviewerCareerIds->all(), $request->user()?->id);
+            $this->userManagementService->deactivateAssignableRoles($user, $availableRoles);
+            $this->userManagementService->syncRoleAssignments($user, $selectedRoleCodes->all(), $reviewerCareerIds->all(), $request->user()?->id);
         });
 
         return redirect()
@@ -170,71 +169,20 @@ class UserManagementController extends Controller
             ->with('status', 'Los roles del usuario se actualizaron correctamente.');
     }
 
-    protected function availableRolesFor(?User $user)
+    public function updateStatus(UpdateManagedUserStatusRequest $request, User $user): RedirectResponse
     {
-        $codes = $user?->hasRole(RoleCode::ADMIN)
-            ? [
-                RoleCode::ADMIN->value,
-                RoleCode::DIRECTIVO->value,
-                RoleCode::REVISOR->value,
-                RoleCode::DOCENTE->value,
-            ]
-            : [
-                RoleCode::REVISOR->value,
-                RoleCode::DOCENTE->value,
-            ];
-
-        return Role::query()
-            ->whereIn('code', $codes)
-            ->orderBy('name')
-            ->get();
-    }
-
-    protected function syncRoleAssignments(User $user, array $selectedRoleCodes, array $reviewerCareerIds, ?int $assignedByUserId): void
-    {
-        $rolesByCode = Role::query()
-            ->whereIn('code', $selectedRoleCodes)
-            ->get()
-            ->keyBy('code');
-
-        foreach ($selectedRoleCodes as $roleCode) {
-            $role = $rolesByCode->get($roleCode);
-
-            if ($role === null) {
-                continue;
-            }
-
-            if ($roleCode === RoleCode::REVISOR->value) {
-                $scopeCareerIds = $reviewerCareerIds === [] ? [null] : array_values(array_unique($reviewerCareerIds));
-
-                foreach ($scopeCareerIds as $careerId) {
-                    UserRoleAssignment::query()->updateOrCreate(
-                        [
-                            'user_id' => $user->id,
-                            'role_id' => $role->id,
-                            'career_id' => $careerId,
-                        ],
-                        [
-                            'is_active' => true,
-                            'assigned_by_user_id' => $assignedByUserId,
-                        ],
-                    );
-                }
-
-                continue;
-            }
-
-            UserRoleAssignment::query()->updateOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'role_id' => $role->id,
-                    'career_id' => null,
-                ],
-                [
-                    'is_active' => true,
-                    'assigned_by_user_id' => $assignedByUserId,
-                ],
-            );
+        if ($request->user()?->is($user) && ! $request->boolean('is_active')) {
+            return redirect()
+                ->route('demo.docentes')
+                ->with('status', 'No puedes desactivar tu propia cuenta desde esta pantalla.');
         }
+
+        $this->userManagementService->updateActiveState($user, $request->boolean('is_active'));
+
+        return redirect()
+            ->route('demo.docentes')
+            ->with('status', $request->boolean('is_active')
+                ? 'La cuenta se reactivo correctamente.'
+                : 'La cuenta se desactivo correctamente.');
     }
 }

@@ -93,6 +93,28 @@
             </div>
           </div>
         </article>
+
+        <article class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-2xl font-semibold text-slate-900">Contexto academico y notas globales</h2>
+          <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Carrera</p>
+              <p class="mt-2 text-sm leading-6 text-slate-700">{{ plan.career || "Sin carrera" }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Intento formativo</p>
+              <p class="mt-2 text-sm leading-6 text-slate-700">{{ plan.course_intent || "Sin descripcion" }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Metodologia</p>
+              <p class="mt-2 text-sm leading-6 text-slate-700">{{ plan.methodology_notes || "Sin notas metodologicas" }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Observaciones generales</p>
+              <p class="mt-2 text-sm leading-6 text-slate-700">{{ plan.general_observations || "Sin observaciones" }}</p>
+            </div>
+          </div>
+        </article>
       </section>
 
       <aside class="space-y-6">
@@ -112,10 +134,46 @@
               <p class="mt-2 text-sm font-medium text-slate-800">{{ plan.group }} · {{ plan.period }}</p>
             </div>
             <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Fechas clave</p>
+              <p class="mt-2 text-sm font-medium text-slate-800">Enviada: {{ plan.submitted_at || "Pendiente" }}</p>
+              <p class="mt-1 text-sm font-medium text-slate-800">Autorizada: {{ plan.authorized_at || "Pendiente" }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Resumen</p>
               <p class="mt-2 text-sm font-medium text-slate-800">
                 {{ plan.summary.units }} unidades · {{ plan.summary.modules }} modulos
               </p>
+            </div>
+          </div>
+        </article>
+
+        <article class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-2xl font-semibold text-slate-900">Gestion de estados</h2>
+          <div class="mt-5 space-y-4">
+            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Estado actual</p>
+              <div class="mt-3 flex flex-wrap items-center gap-3">
+                <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="statusClass(plan.status.code)">
+                  {{ plan.status.name }}
+                </span>
+                <span class="text-sm text-slate-500">{{ plan.status_history.length }} movimientos registrados</span>
+              </div>
+            </div>
+
+            <div v-if="plan.status_history.length" class="space-y-3">
+              <div v-for="entry in plan.status_history" :key="`${entry.changed_at}-${entry.to}`" class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <p class="text-sm font-semibold text-slate-900">{{ entry.from }} -> {{ entry.to }}</p>
+                <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">
+                  {{ entry.changed_at || "Sin fecha" }} · {{ entry.changed_by }}
+                </p>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                  {{ entry.comments || "Transicion registrada sin comentarios adicionales." }}
+                </p>
+              </div>
+            </div>
+
+            <div v-else class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+              Todavia no hay cambios de estado registrados para esta planeacion.
             </div>
           </div>
         </article>
@@ -242,9 +300,15 @@ const props = defineProps<{
     folio: string;
     teacher: string;
     subject: string;
+    career: string | null;
     group: string;
     period: string;
     general_objective: string;
+    course_intent: string;
+    methodology_notes: string;
+    general_observations: string;
+    submitted_at: string | null;
+    authorized_at: string | null;
     status: { code: string; name: string; editable: boolean };
     summary: { units: number; modules: number; progress: number; evaluation: number };
     units: Array<{
@@ -278,6 +342,13 @@ const props = defineProps<{
       module_hours: number;
     };
     review_comments: ReviewComment[];
+    status_history: Array<{
+      from: string;
+      to: string;
+      changed_at: string | null;
+      changed_by: string;
+      comments: string | null;
+    }>;
     actions: {
       edit: string | null;
       submit: string | null;

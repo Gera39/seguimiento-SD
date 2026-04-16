@@ -60,6 +60,25 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = $this->user();
+
+        if ($user !== null && ! $user->is_active) {
+            Auth::guard('web')->logout();
+            RateLimiter::hit($this->throttleKey());
+
+            app(AuthLoginAuditService::class)->record(
+                $this,
+                'LOGIN_FAILED',
+                false,
+                $user,
+                'inactive_user',
+            );
+
+            throw ValidationException::withMessages([
+                'email' => 'Tu cuenta esta inactiva. Contacta al administrador.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

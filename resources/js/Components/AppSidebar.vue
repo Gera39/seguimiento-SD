@@ -41,7 +41,10 @@ const menuItems = computed(() => {
     items.push({
       title: "Planeaciones",
       icon: BookOpen,
-      items: [{ title: "Mis planeaciones", url: "/mis-secuencias" }],
+      items: [
+        { title: "Mis planeaciones", url: "/mis-secuencias" },
+        { title: "Nueva planeacion", url: "/planeaciones/crear" },
+      ],
     });
   }
 

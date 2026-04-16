@@ -205,13 +205,24 @@
                   </span>
                 </td>
                 <td class="px-4 py-4">
-                  <button
-                    type="button"
-                    class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-                    @click="openRoleEditor(person)"
-                  >
-                    Editar roles
-                  </button>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+                      @click="openRoleEditor(person)"
+                    >
+                      Editar roles
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-xl px-3 py-2 text-xs font-semibold"
+                      :class="person.is_active ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-emerald-200 bg-emerald-50 text-emerald-700'"
+                      :disabled="statusProcessingId === person.id"
+                      @click="toggleUserStatus(person)"
+                    >
+                      {{ statusProcessingId === person.id ? "Guardando..." : person.is_active ? "Desactivar" : "Activar" }}
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="!filteredUsers.length">
@@ -312,7 +323,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useForm } from "@inertiajs/vue3";
+import { router, useForm } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Header from "@/components/Header.vue";
 
@@ -341,6 +352,7 @@ type ManagedUser = {
   reviewer_career_ids: number[];
   reviewer_scope_label: string | null;
   created_at: string | null;
+  update_status_url: string;
   update_roles_url: string;
 };
 
@@ -360,6 +372,7 @@ const tituloPagina = {
 const showForm = ref(false);
 const search = ref("");
 const editingUser = ref<ManagedUser | null>(null);
+const statusProcessingId = ref<number | null>(null);
 
 const form = useForm({
   employee_number: "",
@@ -479,6 +492,30 @@ const submitRoleUpdate = () => {
     preserveScroll: true,
     onSuccess: () => {
       closeRoleEditor();
+    },
+  });
+};
+
+const toggleUserStatus = (user: ManagedUser) => {
+  const nextState = !user.is_active;
+  const confirmed = window.confirm(
+    nextState
+      ? `Se activara la cuenta de ${user.name}.`
+      : `Se desactivara la cuenta de ${user.name} y ya no podra iniciar sesion.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  statusProcessingId.value = user.id;
+
+  router.patch(user.update_status_url, {
+    is_active: nextState,
+  }, {
+    preserveScroll: true,
+    onFinish: () => {
+      statusProcessingId.value = null;
     },
   });
 };

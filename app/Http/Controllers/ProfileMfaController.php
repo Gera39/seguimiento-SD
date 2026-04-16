@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Security\Mfa\UserMfaManager;
 use App\Http\Requests\Profile\ConfirmMfaSetupRequest;
 use App\Http\Requests\Profile\DisableMfaRequest;
+use App\Http\Requests\Profile\EnableMfaRequest;
 use App\Http\Requests\Profile\RegenerateRecoveryCodesRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class ProfileMfaController extends Controller
     ) {
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(EnableMfaRequest $request): RedirectResponse
     {
         $user = $request->user();
 
@@ -37,12 +38,18 @@ class ProfileMfaController extends Controller
         return Redirect::route('profile.edit')->with('status', 'Escanea o registra la clave secreta y confirma un codigo para activar MFA con autenticador.');
     }
 
-    public function storeEmailOtp(Request $request): RedirectResponse
+    public function storeEmailOtp(EnableMfaRequest $request): RedirectResponse
     {
         $user = $request->user();
 
         if ($user === null) {
             return Redirect::route('login');
+        }
+
+        $activeMethod = $this->mfaManager->primaryMethodFor($user);
+
+        if ($activeMethod !== null && $activeMethod->method_type === 'EMAIL_OTP') {
+            return Redirect::route('profile.edit')->with('status', 'El OTP por correo ya esta activo.');
         }
 
         [$method, $recoveryCodes] = $this->mfaManager->enableEmailOtp($user);

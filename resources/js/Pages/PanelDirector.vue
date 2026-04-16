@@ -38,26 +38,120 @@
         </div>
       </section>
 
+      <section class="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <article class="space-y-6 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Gestion de estados</p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Pipeline institucional de planeaciones</h2>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div v-for="item in statusBreakdown" :key="item.code" class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ item.name }}</p>
+              <p class="mt-3 text-3xl font-semibold text-slate-900">{{ item.count }}</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Carga por carrera</p>
+            <div class="mt-4 space-y-3">
+              <div v-for="item in dashboard.byCareer" :key="item.career" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <p class="font-semibold text-slate-900">{{ item.career }}</p>
+                  <p class="text-sm text-slate-500">{{ item.total }} visibles</p>
+                </div>
+                <p class="mt-2 text-sm text-slate-600">Pendientes finales: {{ item.pending_final }} · Autorizadas: {{ item.authorized }}</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="space-y-6 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Dashboard ejecutivo</p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Focos de seguimiento</h2>
+          </div>
+
+          <div class="rounded-[28px] border border-amber-200 bg-amber-50 p-5">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Pendientes de validacion final</p>
+            <div class="mt-4 space-y-3">
+              <div v-for="item in dashboard.pendingFinal" :key="item.id" class="rounded-2xl border border-amber-200 bg-white px-4 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p class="font-semibold text-slate-900">{{ item.subject }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ item.folio }} · {{ item.teacher }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ item.career }} · Ronda {{ item.review_round }}</p>
+                  </div>
+                  <Link :href="item.url" class="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white">
+                    Revisar
+                  </Link>
+                </div>
+                <p class="mt-3 text-sm text-amber-800">{{ item.open_comments }} observaciones abiertas.</p>
+              </div>
+              <div v-if="!dashboard.pendingFinal.length" class="rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm text-amber-800">
+                No hay pendientes finales en este momento.
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-[28px] border border-emerald-200 bg-emerald-50 p-5">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Autorizaciones recientes</p>
+            <div class="mt-4 space-y-3">
+              <div v-for="item in dashboard.recentAuthorizations" :key="item.id" class="rounded-2xl border border-emerald-200 bg-white px-4 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p class="font-semibold text-slate-900">{{ item.subject }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ item.folio }} · {{ item.teacher }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ item.authorized_at }} · {{ item.authorizer }}</p>
+                  </div>
+                  <Link :href="item.url" class="rounded-full border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700">
+                    Ver detalle
+                  </Link>
+                </div>
+              </div>
+              <div v-if="!dashboard.recentAuthorizations.length" class="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-emerald-800">
+                Aun no hay cierres autorizados para este universo.
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
       <section class="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Filtros ejecutivos</p>
-            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Prioriza cierres y revisa el pipeline academico</h2>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Filtros avanzados</p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Busqueda avanzada y priorizacion</h2>
           </div>
           <button type="button" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" @click="resetFilters">
             Limpiar filtros
           </button>
         </div>
 
-        <form class="mt-6 grid gap-4 xl:grid-cols-[1.2fr_0.9fr_0.9fr_0.9fr_auto]" @submit.prevent="applyFilters">
+        <form class="mt-6 grid gap-4 xl:grid-cols-4" @submit.prevent="applyFilters">
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-700">Busqueda</span>
+            <span class="text-sm font-medium text-slate-700">Busqueda general</span>
             <input
               v-model="localFilters.search"
               type="text"
               class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4"
-              placeholder="Folio, asignatura, docente o carrera"
+              placeholder="Folio, docente, asignatura, carrera, periodo o comentario"
             />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Docente</span>
+            <input v-model="localFilters.teacher" type="text" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4" placeholder="Nombre del docente" />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Asignatura</span>
+            <input v-model="localFilters.subject" type="text" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4" placeholder="Nombre de asignatura" />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Grupo</span>
+            <input v-model="localFilters.group" type="text" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4" placeholder="Codigo de grupo" />
           </label>
 
           <label class="space-y-2">
@@ -82,6 +176,33 @@
               <option :value="null">Todos</option>
               <option v-for="option in periodOptions" :key="option.id" :value="option.id">{{ option.name }}</option>
             </select>
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Ronda de revision</span>
+            <input v-model="localFilters.review_round" type="number" min="1" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4" placeholder="Ej. 1" />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Desde</span>
+            <input v-model="localFilters.date_from" type="date" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4" />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Hasta</span>
+            <input v-model="localFilters.date_to" type="date" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4" />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-700">Orden</span>
+            <select v-model="localFilters.sort" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4">
+              <option v-for="option in sortOptions" :key="option.code" :value="option.code">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <input v-model="localFilters.has_open_comments" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600" />
+            Solo con observaciones abiertas
           </label>
 
           <div class="flex items-end">
@@ -125,7 +246,7 @@
               </div>
             </div>
 
-            <div class="mt-5 grid gap-4 lg:grid-cols-3">
+            <div class="mt-5 grid gap-4 lg:grid-cols-4">
               <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Seguimiento</p>
                 <p class="mt-2 text-sm text-slate-600">Movimiento: {{ plan.submittedAt || plan.updatedAt || "Sin fecha" }}</p>
@@ -135,7 +256,7 @@
               <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Observaciones</p>
                 <p class="mt-2 text-sm text-slate-600">{{ plan.openComments }} comentarios abiertos.</p>
-                <p class="mt-1 text-sm text-slate-600">Accion sugerida: {{ plan.primaryAction.label }}</p>
+                <p class="mt-1 text-sm text-slate-600">Ultimo cambio: {{ plan.latestStatusChangeAt || "Sin registro" }}</p>
               </div>
 
               <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
@@ -146,6 +267,12 @@
                 <p class="mt-1 text-sm leading-6 text-slate-600">
                   {{ plan.latestReview?.generalComments || "Aun no se ha capturado comentario general para esta planeacion." }}
                 </p>
+              </div>
+
+              <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Estado institucional</p>
+                <p class="mt-2 text-sm text-slate-600">Autorizada: {{ plan.authorizedAt || "Aun no" }}</p>
+                <p class="mt-1 text-sm text-slate-600">Accion sugerida: {{ plan.primaryAction.label }}</p>
               </div>
             </div>
           </article>
@@ -189,9 +316,11 @@ type QueuePlan = {
   statusCode: string;
   statusName: string;
   submittedAt: string | null;
+  authorizedAt: string | null;
   updatedAt: string | null;
   reviewRound: number;
   openComments: number;
+  latestStatusChangeAt: string | null;
   detailUrl: string;
   primaryAction: {
     label: string;
@@ -217,10 +346,19 @@ const props = defineProps<{
     status: string;
     career: number | null;
     period: number | null;
+    teacher: string;
+    subject: string;
+    group: string;
+    review_round: number | null;
+    has_open_comments: boolean;
+    date_from: string;
+    date_to: string;
+    sort: string;
   };
   statusOptions: StatusOption[];
   careerOptions: Option[];
   periodOptions: Option[];
+  sortOptions: Array<{ code: string; name: string }>;
   metrics: Array<{
     label: string;
     value: number;
@@ -229,6 +367,16 @@ const props = defineProps<{
   summary: {
     totalVisible: number;
     filtered: number;
+  };
+  statusBreakdown: Array<{
+    code: string;
+    name: string;
+    count: number;
+  }>;
+  dashboard: {
+    byCareer: Array<{ career: string; total: number; pending_final: number; authorized: number }>;
+    pendingFinal: Array<{ id: number; folio: string; subject: string; teacher: string; career: string; open_comments: number; review_round: number; url: string }>;
+    recentAuthorizations: Array<{ id: number; folio: string; subject: string; teacher: string; authorized_at: string | null; authorizer: string; url: string }>;
   };
   plans: QueuePlan[];
   status?: string | null;
@@ -244,6 +392,14 @@ const localFilters = reactive({
   status: props.filters.status ?? "",
   career: props.filters.career ?? null,
   period: props.filters.period ?? null,
+  teacher: props.filters.teacher ?? "",
+  subject: props.filters.subject ?? "",
+  group: props.filters.group ?? "",
+  review_round: props.filters.review_round ?? null,
+  has_open_comments: props.filters.has_open_comments ?? false,
+  date_from: props.filters.date_from ?? "",
+  date_to: props.filters.date_to ?? "",
+  sort: props.filters.sort ?? "priority",
 });
 
 const applyFilters = () => {
@@ -254,6 +410,14 @@ const applyFilters = () => {
       ...(localFilters.status ? { status: localFilters.status } : {}),
       ...(localFilters.career ? { career: localFilters.career } : {}),
       ...(localFilters.period ? { period: localFilters.period } : {}),
+      ...(localFilters.teacher ? { teacher: localFilters.teacher } : {}),
+      ...(localFilters.subject ? { subject: localFilters.subject } : {}),
+      ...(localFilters.group ? { group: localFilters.group } : {}),
+      ...(localFilters.review_round ? { review_round: localFilters.review_round } : {}),
+      ...(localFilters.has_open_comments ? { has_open_comments: 1 } : {}),
+      ...(localFilters.date_from ? { date_from: localFilters.date_from } : {}),
+      ...(localFilters.date_to ? { date_to: localFilters.date_to } : {}),
+      ...(localFilters.sort ? { sort: localFilters.sort } : {}),
     },
     {
       preserveScroll: true,
@@ -268,6 +432,14 @@ const resetFilters = () => {
   localFilters.status = "";
   localFilters.career = null;
   localFilters.period = null;
+  localFilters.teacher = "";
+  localFilters.subject = "";
+  localFilters.group = "";
+  localFilters.review_round = null;
+  localFilters.has_open_comments = false;
+  localFilters.date_from = "";
+  localFilters.date_to = "";
+  localFilters.sort = "priority";
 
   router.get(props.baseUrl, {}, { preserveScroll: true, preserveState: true, replace: true });
 };

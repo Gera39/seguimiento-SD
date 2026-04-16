@@ -38,7 +38,12 @@
       <article class="space-y-4 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
         <div>
           <p class="text-sm font-semibold uppercase tracking-[0.22em] text-teal-700">Seguridad avanzada</p>
-          <h2 class="mt-2 text-2xl font-semibold text-slate-900">Autenticacion multifactor</h2>
+          <div class="mt-2 flex flex-wrap items-center gap-3">
+            <h2 class="text-2xl font-semibold text-slate-900">Autenticacion multifactor</h2>
+            <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+              Opcional
+            </span>
+          </div>
           <p class="mt-2 text-sm leading-6 text-slate-600">
             Protege tu cuenta con un segundo factor basado en codigos temporales y codigos de recuperacion.
           </p>
@@ -58,23 +63,35 @@
           <p class="text-lg font-semibold text-slate-900">MFA no esta activo</p>
           <p class="mt-2 text-sm leading-6 text-slate-600">Activa OTP por correo para empezar rapido o configura TOTP con una app autenticadora para una capa mas fuerte.</p>
 
+          <label class="mt-5 block space-y-2">
+            <span class="text-sm font-medium text-slate-700">Confirma tu contrasena para activar 2FA</span>
+            <input
+              v-model="setupMfaForm.password"
+              type="password"
+              autocomplete="current-password"
+              class="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4"
+              placeholder="Contrasena actual"
+            />
+            <p v-if="setupMfaForm.errors.password" class="text-sm text-rose-600">{{ setupMfaForm.errors.password }}</p>
+          </label>
+
           <div class="mt-5 flex flex-wrap gap-3">
             <button
               type="button"
               class="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
-              :disabled="emailOtpForm.processing"
+              :disabled="setupMfaForm.processing"
               @click="enableEmailOtp"
             >
-              {{ emailOtpForm.processing ? "Activando..." : "Activar OTP por correo" }}
+              {{ setupMfaForm.processing ? "Activando..." : "Activar OTP por correo" }}
             </button>
 
             <button
               type="button"
               class="rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white"
-              :disabled="enableMfaForm.processing"
+              :disabled="setupMfaForm.processing"
               @click="enableMfa"
             >
-              {{ enableMfaForm.processing ? "Preparando..." : "Configurar autenticador" }}
+              {{ setupMfaForm.processing ? "Preparando..." : "Configurar autenticador" }}
             </button>
           </div>
         </div>
@@ -129,7 +146,7 @@
               <p class="text-lg font-semibold text-slate-900">MFA activo</p>
               <p class="mt-2 text-sm leading-6 text-slate-600">
                 Metodo principal: {{ mfa.method.label }}
-                <span v-if="mfa.method.destination_masked">· {{ mfa.method.destination_masked }}</span>
+                <span v-if="mfa.method.destination_masked"> · {{ mfa.method.destination_masked }}</span>
               </p>
             </div>
             <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
@@ -154,18 +171,33 @@
             </div>
           </div>
 
-          <div v-if="mfa.method.type === 'EMAIL_OTP'" class="rounded-2xl border border-sky-200 bg-sky-50 p-4">
-            <p class="text-sm font-semibold text-sky-900">Sugerencia de endurecimiento</p>
+          <div class="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+            <p class="text-sm font-semibold text-sky-900">Cambiar metodo</p>
             <p class="mt-2 text-sm leading-6 text-sky-800">
-              Ya tienes OTP por correo. Si quieres una capa mas fuerte, configura el autenticador y reemplaza este metodo.
+              {{ mfa.method.type === "EMAIL_OTP"
+                ? "Ya tienes OTP por correo. Si quieres una capa mas fuerte, cambia al autenticador."
+                : "Tu autenticador ya esta activo. Si necesitas una opcion mas simple, puedes cambiar a OTP por correo." }}
             </p>
+            <input
+              v-model="switchMfaForm.password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Confirma tu contrasena"
+              class="mt-4 h-12 w-full rounded-2xl border border-sky-200 bg-white px-4"
+            />
+            <p v-if="switchMfaForm.errors.password" class="mt-2 text-sm text-rose-600">{{ switchMfaForm.errors.password }}</p>
             <button
               type="button"
-              class="mt-4 rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white"
-              :disabled="enableMfaForm.processing"
-              @click="enableMfa"
+              class="mt-4 rounded-2xl px-5 py-3 text-sm font-semibold text-white"
+              :class="mfa.method.type === 'EMAIL_OTP' ? 'bg-teal-600' : 'bg-slate-900'"
+              :disabled="switchMfaForm.processing"
+              @click="mfa.method.type === 'EMAIL_OTP' ? enableMfa() : enableEmailOtp()"
             >
-              {{ enableMfaForm.processing ? "Preparando..." : "Cambiar a autenticador" }}
+              {{ switchMfaForm.processing
+                ? "Actualizando..."
+                : mfa.method.type === "EMAIL_OTP"
+                  ? "Cambiar a autenticador"
+                  : "Cambiar a OTP por correo" }}
             </button>
           </div>
 
@@ -258,8 +290,13 @@ const deleteForm = useForm({
   password: "",
 });
 
-const enableMfaForm = useForm({});
-const emailOtpForm = useForm({});
+const setupMfaForm = useForm({
+  password: "",
+});
+
+const switchMfaForm = useForm({
+  password: "",
+});
 
 const confirmMfaForm = useForm({
   code: "",
@@ -277,12 +314,22 @@ const updateProfile = () => {
   profileForm.patch("/profile");
 };
 
+const currentMfaSetupForm = () => (props.mfa.enabled ? switchMfaForm : setupMfaForm);
+
 const enableMfa = () => {
-  enableMfaForm.post("/profile/mfa");
+  const form = currentMfaSetupForm();
+
+  form.post("/profile/mfa", {
+    onFinish: () => form.reset("password"),
+  });
 };
 
 const enableEmailOtp = () => {
-  emailOtpForm.post("/profile/mfa/email");
+  const form = currentMfaSetupForm();
+
+  form.post("/profile/mfa/email", {
+    onFinish: () => form.reset("password"),
+  });
 };
 
 const confirmMfa = () => {
@@ -292,7 +339,13 @@ const confirmMfa = () => {
 };
 
 const cancelPendingMfa = () => {
-  enableMfaForm.delete("/profile/mfa/pending");
+  confirmMfaForm.reset("code");
+  confirmMfaForm.clearErrors();
+  setupMfaForm.reset("password");
+  setupMfaForm.clearErrors();
+  switchMfaForm.reset("password");
+  switchMfaForm.clearErrors();
+  confirmMfaForm.delete("/profile/mfa/pending");
 };
 
 const disableMfa = () => {

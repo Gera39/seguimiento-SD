@@ -19,6 +19,7 @@ use App\Models\UserRoleAssignment;
 use Database\Seeders\Planning\PlanningCatalogSeeder;
 use Database\Seeders\Security\SecurityCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class DidacticPlanWorkflowTest extends TestCase
@@ -48,6 +49,51 @@ class DidacticPlanWorkflowTest extends TestCase
         $this->assertSame(PlanningStatusCode::SUBMITTED->value, $plan->status->code);
         $this->assertNotNull($plan->submitted_at);
         $this->assertDatabaseCount('didactic_plan_validation_snapshots', 2);
+    }
+
+    public function test_docente_index_supports_advanced_filters_and_search(): void
+    {
+        $this->seedCatalogs();
+
+        $teacher = User::factory()->create();
+        $this->assignRole($teacher, RoleCode::DOCENTE);
+
+        $firstAssignment = $this->createAssignmentForTeacher($teacher, 101)->load('offering.group.career', 'offering.group.academicPeriod');
+        $secondAssignment = $this->createAssignmentForTeacher($teacher, 202)->load('offering.group.career', 'offering.group.academicPeriod');
+
+        $firstPlan = $this->createPlan($teacher, $firstAssignment->id);
+        $this->createPlan($teacher, $secondAssignment->id);
+
+        $this->actingAs($teacher)
+            ->patch(route('plans.update', $firstPlan, absolute: false), [
+                ...$this->validPayload($firstAssignment->id),
+                'general_objective' => 'Construir un prototipo medible para validar competencias.',
+            ])
+            ->assertRedirect();
+
+        $response = $this->actingAs($teacher)->get(route('demo.secuencias', [
+            'search' => 'prototipo medible',
+            'status' => PlanningStatusCode::DRAFT->value,
+            'career' => $firstAssignment->offering->group->career_id,
+            'period' => $firstAssignment->offering->group->academic_period_id,
+            'sort' => 'subject',
+        ], absolute: false));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Secuencias')
+            ->where('filters.search', 'prototipo medible')
+            ->where('filters.status', PlanningStatusCode::DRAFT->value)
+            ->where('filters.career', $firstAssignment->offering->group->career_id)
+            ->where('filters.period', $firstAssignment->offering->group->academic_period_id)
+            ->where('filters.sort', 'subject')
+            ->where('summary.filtered', 1)
+            ->has('plans', 1)
+            ->where('plans.0.id', $firstPlan->id)
+            ->where('plans.0.statusCode', PlanningStatusCode::DRAFT->value)
+            ->where('plans.0.submitUrl', route('plans.submit', $firstPlan, absolute: false))
+            ->where('plans.0.career', $firstAssignment->offering->group->career->name)
+            ->where('plans.0.period', $firstAssignment->offering->group->academicPeriod->name));
     }
 
     public function test_submitted_plan_can_not_be_updated_by_docente(): void
@@ -217,6 +263,61 @@ class DidacticPlanWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_plan_detail_exposes_status_history_for_tracking(): void
+    {
+        $this->seedCatalogs();
+
+        $teacher = User::factory()->create(['name' => 'Docente Historial']);
+        $reviewer = User::factory()->create(['name' => 'Revisor Historial']);
+
+        $this->assignRole($teacher, RoleCode::DOCENTE);
+        $this->assignRole($reviewer, RoleCode::REVISOR);
+
+        $assignment = $this->createAssignmentForTeacher($teacher);
+        $plan = $this->createPlan($teacher, $assignment->id);
+
+        $this->actingAs($teacher)
+            ->post(route('plans.submit', $plan, absolute: false))
+            ->assertRedirect();
+
+        $this->travel(1)->seconds();
+
+        $this->actingAs($reviewer)
+            ->post(route('plans.feedback', $plan, absolute: false), [
+                'general_comments' => 'Ajustar el objetivo general.',
+                'review_comments' => [
+                    [
+                        'entity_type' => 'PLAN',
+                        'entity_id' => null,
+                        'field_path' => 'general_objective',
+                        'field_label' => 'Plan > Objetivo general',
+                        'severity_code' => 'REQUIRED',
+                        'comment_text' => 'Define el objetivo con un verbo observable.',
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $response = $this->actingAs($teacher)
+            ->get(route('plans.show', $plan, absolute: false));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('VisualizacionSecuencia')
+            ->where('plan.status.code', PlanningStatusCode::FEEDBACK->value)
+            ->where('plan.status.editable', true)
+            ->has('plan.review_comments', 1)
+            ->has('plan.status_history', 3)
+            ->where('plan.status_history', function ($history): bool {
+                $entries = collect($history);
+
+                return $entries->contains(fn ($entry) => data_get($entry, 'changed_by') === 'Revisor Historial' && data_get($entry, 'comments') === 'Ajustar el objetivo general.')
+                    && $entries->contains(fn ($entry) => data_get($entry, 'changed_by') === 'Docente Historial');
+            })
+            ->where('plan.review_comments.0.comment_text', 'Define el objetivo con un verbo observable.')
+            ->where('plan.submitted_at', fn (?string $value) => is_string($value) && $value !== ''));
+    }
+
     public function test_revisor_can_validate_and_reopen_an_addressed_comment(): void
     {
         $this->seedCatalogs();
@@ -323,11 +424,13 @@ class DidacticPlanWorkflowTest extends TestCase
         ]);
     }
 
-    protected function createAssignmentForTeacher(User $teacher): TeacherSubjectAssignment
+    protected function createAssignmentForTeacher(User $teacher, string|int|null $suffix = null): TeacherSubjectAssignment
     {
+        $suffix ??= $teacher->id;
+
         $career = Career::query()->create([
-            'code' => 'TIC-'.$teacher->id,
-            'name' => 'Tecnologias '.$teacher->id,
+            'code' => 'TIC-'.$suffix,
+            'name' => 'Tecnologias '.$suffix,
             'short_name' => 'TIC',
             'educational_level' => 'TSU',
             'duration_terms' => 6,
@@ -335,8 +438,8 @@ class DidacticPlanWorkflowTest extends TestCase
         ]);
 
         $subject = Subject::query()->create([
-            'code' => 'ASI-'.$teacher->id,
-            'name' => 'Aplicaciones Web '.$teacher->id,
+            'code' => 'ASI-'.$suffix,
+            'name' => 'Aplicaciones Web '.$suffix,
             'subject_type' => 'REGULAR',
             'default_total_hours' => 60,
             'default_theoretical_hours' => 30,
@@ -346,8 +449,8 @@ class DidacticPlanWorkflowTest extends TestCase
         ]);
 
         $period = AcademicPeriod::query()->create([
-            'code' => '2026-'.$teacher->id,
-            'name' => 'Periodo '.$teacher->id,
+            'code' => '2026-'.$suffix,
+            'name' => 'Periodo '.$suffix,
             'start_date' => '2026-01-01',
             'end_date' => '2026-04-30',
             'status_code' => 'ACTIVE',
@@ -357,7 +460,7 @@ class DidacticPlanWorkflowTest extends TestCase
         $group = AcademicGroup::query()->create([
             'career_id' => $career->id,
             'academic_period_id' => $period->id,
-            'group_code' => 'A'.$teacher->id,
+            'group_code' => 'A'.$suffix,
             'shift_code' => 'MORNING',
             'term_number' => 1,
             'is_active' => true,

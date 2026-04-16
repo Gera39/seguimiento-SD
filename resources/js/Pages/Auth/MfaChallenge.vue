@@ -13,6 +13,7 @@
           <p class="mt-2 text-lg font-semibold text-slate-900">{{ challenge.label }}</p>
           <p v-if="challenge.destination_masked" class="mt-2 text-sm text-slate-500">Destino: {{ challenge.destination_masked }}</p>
           <p class="mt-2 text-sm text-slate-500">Codigos de recuperacion disponibles: {{ challenge.recovery_codes_remaining }}</p>
+          <p v-if="challenge.expires_at" class="mt-2 text-sm text-slate-500">Este reto expira en: {{ expiresInLabel }}</p>
         </div>
 
         <div v-if="status" class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -31,6 +32,9 @@
             </h2>
             <p v-if="challenge.type === 'EMAIL_OTP'" class="mt-2 text-sm leading-6 text-slate-600">
               Ingresa el codigo de 6 digitos enviado a {{ challenge.destination_masked }}.
+            </p>
+            <p v-if="challenge.type === 'EMAIL_OTP' && resendWaitLabel" class="mt-2 text-sm leading-6 text-slate-500">
+              Podras solicitar otro codigo en {{ resendWaitLabel }}.
             </p>
           </div>
 
@@ -51,12 +55,12 @@
             <button
               v-if="challenge.type === 'EMAIL_OTP'"
               type="button"
-              :disabled="resendForm.processing"
+              :disabled="resendForm.processing || isResendBlocked"
               class="h-12 w-full rounded-2xl border border-slate-300 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              :class="{ 'cursor-not-allowed opacity-70': resendForm.processing }"
+              :class="{ 'cursor-not-allowed opacity-70': resendForm.processing || isResendBlocked }"
               @click="resendOtp"
             >
-              {{ resendForm.processing ? "Reenviando..." : "Reenviar OTP" }}
+              {{ resendForm.processing ? "Reenviando..." : isResendBlocked ? `Reenviar OTP en ${resendWaitLabel}` : "Reenviar OTP" }}
             </button>
 
             <button
@@ -111,6 +115,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Link, useForm } from "@inertiajs/vue3";
 
 const props = defineProps<{
@@ -124,6 +129,55 @@ const props = defineProps<{
   };
   status?: string | null;
 }>();
+
+const now = ref(Date.now());
+let ticker: ReturnType<typeof setInterval> | null = null;
+
+const secondsUntil = (value?: string | null) => {
+  if (!value) return 0;
+
+  const timestamp = new Date(value).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.ceil((timestamp - now.value) / 1000));
+};
+
+const formatSeconds = (seconds: number) => {
+  if (seconds <= 0) {
+    return "menos de 1 min";
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes <= 0) {
+    return `${remainingSeconds}s`;
+  }
+
+  return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+};
+
+const expiresInLabel = computed(() => formatSeconds(secondsUntil(props.challenge.expires_at)));
+const resendSecondsLeft = computed(() => secondsUntil(props.challenge.resend_available_at));
+const resendWaitLabel = computed(() => (
+  resendSecondsLeft.value > 0 ? formatSeconds(resendSecondsLeft.value) : ""
+));
+const isResendBlocked = computed(() => resendSecondsLeft.value > 0);
+
+onMounted(() => {
+  ticker = window.setInterval(() => {
+    now.value = Date.now();
+  }, 1000);
+});
+
+onBeforeUnmount(() => {
+  if (ticker !== null) {
+    window.clearInterval(ticker);
+  }
+});
 
 const totpForm = useForm({
   code: "",
@@ -148,6 +202,10 @@ const submitRecoveryCode = () => {
 };
 
 const resendOtp = () => {
+  if (isResendBlocked.value) {
+    return;
+  }
+
   resendForm.post("/mfa/challenge/resend");
 };
 </script>

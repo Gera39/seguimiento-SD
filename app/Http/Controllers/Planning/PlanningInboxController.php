@@ -94,15 +94,26 @@ class PlanningInboxController extends Controller
                 'status' => $this->sanitizeStatusFilter($request->string('status')->trim()->toString(), $allowedStatuses),
                 'career' => $request->integer('career') ?: null,
                 'period' => $request->integer('period') ?: null,
+                'teacher' => $request->string('teacher')->trim()->toString(),
+                'subject' => $request->string('subject')->trim()->toString(),
+                'group' => $request->string('group')->trim()->toString(),
+                'review_round' => $request->integer('review_round') ?: null,
+                'has_open_comments' => $request->boolean('has_open_comments'),
+                'date_from' => $request->string('date_from')->trim()->toString(),
+                'date_to' => $request->string('date_to')->trim()->toString(),
+                'sort' => $this->sanitizeSort($request->string('sort')->trim()->toString()),
             ],
             'statusOptions' => $this->statusOptions($allowedStatuses),
             'careerOptions' => $this->careerOptions($allVisiblePlans),
             'periodOptions' => $this->periodOptions($allVisiblePlans),
+            'sortOptions' => $this->sortOptions(),
             'metrics' => $this->metricsFor($role, $this->statusCounts($allVisiblePlans)),
             'summary' => [
                 'totalVisible' => $allVisiblePlans->count(),
                 'filtered' => count($filteredPlans),
             ],
+            'statusBreakdown' => $this->statusBreakdown($allVisiblePlans, $allowedStatuses),
+            'dashboard' => $role === RoleCode::DIRECTIVO ? $this->directorInsights($allVisiblePlans) : null,
             'plans' => $filteredPlans,
         ];
     }
@@ -118,6 +129,8 @@ class PlanningInboxController extends Controller
                 'assignment.offering.careerSubject.subject',
                 'reviews.comments',
                 'reviews.reviewer',
+                'authorizer',
+                'statusHistory.toStatus',
             ])
             ->whereHas('status', fn (Builder $query) => $query->where('code', '!=', PlanningStatusCode::DRAFT->value));
     }
@@ -149,6 +162,13 @@ class PlanningInboxController extends Controller
         $search = $request->string('search')->trim()->toString();
         $careerId = $request->integer('career');
         $periodId = $request->integer('period');
+        $teacher = $request->string('teacher')->trim()->toString();
+        $subject = $request->string('subject')->trim()->toString();
+        $group = $request->string('group')->trim()->toString();
+        $reviewRound = $request->integer('review_round');
+        $hasOpenComments = $request->boolean('has_open_comments');
+        $dateFrom = $request->string('date_from')->trim()->toString();
+        $dateTo = $request->string('date_to')->trim()->toString();
         $statusCode = $this->sanitizeStatusFilter($request->string('status')->trim()->toString(), $allowedStatuses);
 
         if ($search !== '') {
@@ -161,8 +181,22 @@ class PlanningInboxController extends Controller
                     ->orWhereHas('assignment.offering.group', fn (Builder $groupQuery) => $groupQuery->where('group_code', 'like', $like))
                     ->orWhereHas('assignment.offering.careerSubject.subject', fn (Builder $subjectQuery) => $subjectQuery->where('name', 'like', $like))
                     ->orWhereHas('assignment.offering.group.career', fn (Builder $careerQuery) => $careerQuery->where('name', 'like', $like))
-                    ->orWhereHas('assignment.offering.group.academicPeriod', fn (Builder $periodQuery) => $periodQuery->where('name', 'like', $like));
+                    ->orWhereHas('assignment.offering.group.academicPeriod', fn (Builder $periodQuery) => $periodQuery->where('name', 'like', $like))
+                    ->orWhereHas('reviews', fn (Builder $reviewQuery) => $reviewQuery->where('general_comments', 'like', $like))
+                    ->orWhere('submission_notes', 'like', $like);
             });
+        }
+
+        if ($teacher !== '') {
+            $query->whereHas('assignment.teacher', fn (Builder $teacherQuery) => $teacherQuery->where('name', 'like', '%'.$teacher.'%'));
+        }
+
+        if ($subject !== '') {
+            $query->whereHas('assignment.offering.careerSubject.subject', fn (Builder $subjectQuery) => $subjectQuery->where('name', 'like', '%'.$subject.'%'));
+        }
+
+        if ($group !== '') {
+            $query->whereHas('assignment.offering.group', fn (Builder $groupQuery) => $groupQuery->where('group_code', 'like', '%'.$group.'%'));
         }
 
         if ($careerId > 0) {
@@ -171,6 +205,22 @@ class PlanningInboxController extends Controller
 
         if ($periodId > 0) {
             $query->whereHas('assignment.offering.group', fn (Builder $groupQuery) => $groupQuery->where('academic_period_id', $periodId));
+        }
+
+        if ($reviewRound > 0) {
+            $query->where('current_review_round', $reviewRound);
+        }
+
+        if ($hasOpenComments) {
+            $query->whereHas('reviews.comments', fn (Builder $commentQuery) => $commentQuery->where('is_resolved', false));
+        }
+
+        if ($dateFrom !== '') {
+            $query->whereDate('updated_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo !== '') {
+            $query->whereDate('updated_at', '<=', $dateTo);
         }
 
         if ($includeStatusFilter && $statusCode !== '') {
@@ -187,6 +237,38 @@ class PlanningInboxController extends Controller
 
     protected function sortPlans(Collection $plans, RoleCode $role): Collection
     {
+        return $this->sortPlansBy(
+            $plans,
+            $role,
+            request()->string('sort')->trim()->toString(),
+        );
+    }
+
+    protected function sortPlansBy(Collection $plans, RoleCode $role, string $sort): Collection
+    {
+        $sort = $this->sanitizeSort($sort);
+
+        if ($sort === 'newest') {
+            return $plans->sortByDesc(fn (DidacticPlan $plan) => ($plan->updated_at ?? $plan->submitted_at)?->getTimestamp() ?? 0)->values();
+        }
+
+        if ($sort === 'oldest') {
+            return $plans->sortBy(fn (DidacticPlan $plan) => ($plan->updated_at ?? $plan->submitted_at)?->getTimestamp() ?? 0)->values();
+        }
+
+        if ($sort === 'teacher') {
+            return $plans->sortBy(fn (DidacticPlan $plan) => $plan->assignment?->teacher?->name ?? '')->values();
+        }
+
+        if ($sort === 'comments') {
+            return $plans->sortByDesc(function (DidacticPlan $plan): int {
+                return $plan->reviews
+                    ->flatMap(fn (DidacticPlanReview $review) => $review->comments)
+                    ->where('is_resolved', false)
+                    ->count();
+            })->values();
+        }
+
         return $plans
             ->sortBy(function (DidacticPlan $plan) use ($role): string {
                 $priority = $this->statusPriority($role, $plan->status?->code);
@@ -195,6 +277,13 @@ class PlanningInboxController extends Controller
                 return sprintf('%02d-%010d', $priority, 9_999_999_999 - $timestamp);
             })
             ->values();
+    }
+
+    protected function sanitizeSort(string $sort): string
+    {
+        return in_array($sort, ['priority', 'newest', 'oldest', 'teacher', 'comments'], true)
+            ? $sort
+            : 'priority';
     }
 
     protected function statusPriority(RoleCode $role, ?string $statusCode): int
@@ -314,6 +403,96 @@ class PlanningInboxController extends Controller
         return $counts;
     }
 
+    protected function sortOptions(): array
+    {
+        return [
+            ['code' => 'priority', 'name' => 'Prioridad operativa'],
+            ['code' => 'newest', 'name' => 'Movimiento mas reciente'],
+            ['code' => 'oldest', 'name' => 'Movimiento mas antiguo'],
+            ['code' => 'teacher', 'name' => 'Docente A-Z'],
+            ['code' => 'comments', 'name' => 'Mas observaciones abiertas'],
+        ];
+    }
+
+    protected function statusBreakdown(Collection $plans, array $allowedStatuses): array
+    {
+        $counts = $this->statusCounts($plans);
+        $statusMap = PlanningStatus::query()
+            ->whereIn('code', $allowedStatuses)
+            ->get()
+            ->keyBy('code');
+
+        return collect($allowedStatuses)
+            ->map(function (string $statusCode) use ($counts, $statusMap): array {
+                $status = $statusMap->get($statusCode);
+
+                return [
+                    'code' => $statusCode,
+                    'name' => $status?->name ?? $statusCode,
+                    'count' => $counts[$statusCode] ?? 0,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    protected function directorInsights(Collection $plans): array
+    {
+        $byCareer = $plans
+            ->groupBy(fn (DidacticPlan $plan) => $plan->assignment?->offering?->group?->career?->name ?? 'Sin carrera')
+            ->map(function (Collection $careerPlans, string $careerName): array {
+                return [
+                    'career' => $careerName,
+                    'total' => $careerPlans->count(),
+                    'pending_final' => $careerPlans->where('status.code', PlanningStatusCode::UNDER_REVIEW->value)->count(),
+                    'authorized' => $careerPlans->where('status.code', PlanningStatusCode::AUTHORIZED->value)->count(),
+                ];
+            })
+            ->sortByDesc('pending_final')
+            ->take(6)
+            ->values()
+            ->all();
+
+        $pendingFinal = $plans
+            ->where('status.code', PlanningStatusCode::UNDER_REVIEW->value)
+            ->sortByDesc(fn (DidacticPlan $plan) => $plan->reviews->flatMap(fn (DidacticPlanReview $review) => $review->comments)->where('is_resolved', false)->count())
+            ->take(5)
+            ->map(fn (DidacticPlan $plan) => [
+                'id' => $plan->id,
+                'folio' => $plan->plan_folio,
+                'subject' => $plan->assignment?->offering?->careerSubject?->subject?->name ?? 'Sin asignatura',
+                'teacher' => $plan->assignment?->teacher?->name ?? 'Sin docente',
+                'career' => $plan->assignment?->offering?->group?->career?->name ?? 'Sin carrera',
+                'open_comments' => $plan->reviews->flatMap(fn (DidacticPlanReview $review) => $review->comments)->where('is_resolved', false)->count(),
+                'review_round' => $plan->current_review_round,
+                'url' => route('plans.final.show', $plan, absolute: false),
+            ])
+            ->values()
+            ->all();
+
+        $recentAuthorizations = $plans
+            ->where('status.code', PlanningStatusCode::AUTHORIZED->value)
+            ->sortByDesc(fn (DidacticPlan $plan) => $plan->authorized_at?->getTimestamp() ?? 0)
+            ->take(5)
+            ->map(fn (DidacticPlan $plan) => [
+                'id' => $plan->id,
+                'folio' => $plan->plan_folio,
+                'subject' => $plan->assignment?->offering?->careerSubject?->subject?->name ?? 'Sin asignatura',
+                'teacher' => $plan->assignment?->teacher?->name ?? 'Sin docente',
+                'authorized_at' => optional($plan->authorized_at)->format('d/m/Y H:i'),
+                'authorizer' => $plan->authorizer?->name ?? 'Sin responsable',
+                'url' => route('plans.show', $plan, absolute: false),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'byCareer' => $byCareer,
+            'pendingFinal' => $pendingFinal,
+            'recentAuthorizations' => $recentAuthorizations,
+        ];
+    }
+
     protected function metricsFor(RoleCode $role, array $counts): array
     {
         return match ($role) {
@@ -386,9 +565,11 @@ class PlanningInboxController extends Controller
             'statusCode' => $plan->status?->code,
             'statusName' => $plan->status?->name,
             'submittedAt' => optional($plan->submitted_at)->format('d/m/Y H:i'),
+            'authorizedAt' => optional($plan->authorized_at)->format('d/m/Y H:i'),
             'updatedAt' => optional($plan->updated_at)->format('d/m/Y H:i'),
             'reviewRound' => $plan->current_review_round,
             'openComments' => $openComments,
+            'latestStatusChangeAt' => optional($plan->statusHistory->sortByDesc('changed_at')->first()?->changed_at)->format('d/m/Y H:i'),
             'detailUrl' => route('plans.show', $plan, absolute: false),
             'reviewUrl' => route('plans.review.show', $plan, absolute: false),
             'finalUrl' => route('plans.final.show', $plan, absolute: false),

@@ -2,10 +2,10 @@
 
 namespace App\Notifications\Auth;
 
+use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\CarbonInterface;
 
 class EmailOtpChallengeNotification extends Notification
 {

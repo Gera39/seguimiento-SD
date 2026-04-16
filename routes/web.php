@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\UserImportController;
 use App\Http\Controllers\Planning\DidacticPlanReviewCommentController;
 use App\Http\Controllers\Planning\DidacticPlanController;
 use App\Http\Controllers\Planning\PlanningInboxController;
@@ -8,16 +9,19 @@ use App\Http\Controllers\Planning\DidacticPlanTransitionController;
 use App\Http\Controllers\ProfileMfaController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Domain\Security\Authentication\PostLoginRedirector;
 
 Route::get('/', function () {
-    return Inertia::render('Login');
+    return Auth::check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
 });
 
 Route::get('/recuperar-contrasena', function () {
-    return Inertia::render('PasswordRecoveryView');
+    return redirect()->route('password.request');
 })->name('password.recovery');
 
 Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
@@ -98,10 +102,12 @@ Route::middleware(['auth', 'active.user', 'mfa.verified'])->group(function () {
         Route::get('/docentes', [UserManagementController::class, 'index'])->name('demo.docentes');
         Route::post('/docentes', [UserManagementController::class, 'store'])->name('demo.docentes.store');
         Route::patch('/docentes/{user}/roles', [UserManagementController::class, 'updateRoles'])->name('demo.docentes.roles.update');
+        Route::patch('/docentes/{user}/estado', [UserManagementController::class, 'updateStatus'])->name('demo.docentes.status.update');
 
-        Route::get('/importar-datos', function () {
-            return Inertia::render('ImportarDatosView');
-        })->name('demo.importar');
+        Route::get('/importar-datos', [UserImportController::class, 'index'])->name('demo.importar');
+        Route::get('/importar-datos/usuarios/plantilla', [UserImportController::class, 'downloadTemplate'])->name('demo.importar.template');
+        Route::post('/importar-datos/usuarios/validar', [UserImportController::class, 'validateImport'])->name('demo.importar.validate');
+        Route::post('/importar-datos/usuarios', [UserImportController::class, 'store'])->name('demo.importar.store');
 
         Route::get('/asignacion-permisos', function () {
             return Inertia::render('AsignacionPermisos');

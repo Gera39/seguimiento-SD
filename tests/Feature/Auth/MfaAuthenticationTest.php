@@ -23,7 +23,9 @@ class MfaAuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->post('/profile/mfa')
+            ->post('/profile/mfa', [
+                'password' => 'password',
+            ])
             ->assertRedirect(route('profile.edit', absolute: false));
 
         $method = UserMfaMethod::query()->where('user_id', $user->id)->firstOrFail();
@@ -75,7 +77,7 @@ class MfaAuthenticationTest extends TestCase
             'code' => $totpCode,
         ]);
 
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('profile.edit', absolute: false));
         $response->assertSessionHas('auth.mfa_verified', true);
         $this->assertDatabaseHas('auth_login_audits', [
             'user_id' => $user->id,
@@ -84,7 +86,7 @@ class MfaAuthenticationTest extends TestCase
             'is_success' => true,
         ]);
 
-        $this->get('/dashboard')->assertOk();
+        $this->get('/dashboard')->assertRedirect(route('profile.edit', absolute: false));
 
         Carbon::setTestNow();
     }
@@ -105,7 +107,7 @@ class MfaAuthenticationTest extends TestCase
 
         $this->post('/mfa/challenge/recovery-code', [
             'recovery_code' => 'ABCD-EFGH',
-        ])->assertRedirect(route('dashboard', absolute: false));
+        ])->assertRedirect(route('profile.edit', absolute: false));
 
         $this->assertDatabaseHas('user_mfa_recovery_codes', [
             'mfa_method_id' => $method->id,
@@ -137,7 +139,9 @@ class MfaAuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->post('/profile/mfa/email')
+            ->post('/profile/mfa/email', [
+                'password' => 'password',
+            ])
             ->assertRedirect(route('profile.edit', absolute: false))
             ->assertSessionHas('mfa_recovery_codes');
 
@@ -147,6 +151,8 @@ class MfaAuthenticationTest extends TestCase
             ->firstOrFail();
 
         $this->assertNotNull($method->confirmed_at);
+
+        $this->post('/logout')->assertRedirect('/');
 
         $this->post('/login', [
             'email' => $user->email,
@@ -159,6 +165,21 @@ class MfaAuthenticationTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Auth/MfaChallenge')
                 ->where('challenge.type', 'EMAIL_OTP'));
+    }
+
+    public function test_current_password_is_required_to_enable_mfa_methods(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->from('/profile')
+            ->post('/profile/mfa', [
+                'password' => 'wrong-password',
+            ])
+            ->assertRedirect('/profile')
+            ->assertSessionHasErrors('password');
+
+        $this->assertDatabaseCount('user_mfa_methods', 0);
     }
 
     public function test_user_can_complete_mfa_challenge_with_email_otp_code(): void
@@ -189,7 +210,7 @@ class MfaAuthenticationTest extends TestCase
             'auth.mfa_email_otp.method_id' => $method->id,
         ])->post('/mfa/challenge', [
             'code' => '123456',
-        ])->assertRedirect(route('dashboard', absolute: false));
+        ])->assertRedirect(route('profile.edit', absolute: false));
 
         $this->assertDatabaseHas('auth_login_audits', [
             'user_id' => $user->id,

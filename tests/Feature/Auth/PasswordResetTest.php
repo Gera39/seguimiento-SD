@@ -19,6 +19,12 @@ class PasswordResetTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_legacy_password_recovery_route_redirects_to_password_request_screen(): void
+    {
+        $this->get('/recuperar-contrasena')
+            ->assertRedirect(route('password.request', absolute: false));
+    }
+
     public function test_reset_password_link_can_be_requested(): void
     {
         Notification::fake();
